@@ -11,6 +11,9 @@ Provisioning (ie: installation and configuration of software into the machine im
 After an image is created it's possible to run a post-processor to better suite the desired intent, for example vSphere (to upload an image to an endpoint) or Vagrant (to convert the image into a valid Vagrant box).
 The advantages in using Packer are that is allows creating the same image for multiple platforms and allowing for problem resolution to be done at image creation. And after an image is created you can spin a fully configured machine in just a few seconds.
 The outputs produced by Packer (eg: AWS AMI IDs; VMware image files) are called artifacts.
+The machine image recipe is described by a template (JSON) file, provisioning files, and GNU/Linux distro installation automation files (preseed for [Debian](https://wiki.debian.org/DebianInstaller/Preseed) flavors and kickstart for [Redhat](https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/5/html/Installation_Guide/ch-kickstart2.html) and [Suse](https://doc.opensuse.org/projects/YaST/SLES10/autoinstall/importkickstart.html) flavors)[^distroauto]. All of these which can be put under revision control.
+
+[^distroauto]: Apparently Redhat's kickstart format is [not expressive enough](https://help.ubuntu.com/community/KickstartCompatibility#Integration_with_Preseed) to enable a full installation. 
 
 **Download Packer**
 <https://www.packer.io/downloads.html>
@@ -19,7 +22,7 @@ The outputs produced by Packer (eg: AWS AMI IDs; VMware image files) are called 
 
 
 
-# Running Packer
+# Basic commands
 
 ```bash
 # check that it runs
