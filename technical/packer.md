@@ -462,7 +462,6 @@ http://serverfault.com/questions/362038/qemu-kvm-virtual-machine-virtio-network-
 ERROR: handshake error: ssh: handshake failed: read tcp 127.0.0.1:3213: connection reset by peer
 https://github.com/mitchellh/packer/issues/788#issuecomment-36421299
 PROBLEM: the /etc/rc.d/rc.local file needs to be cleaned up to have the proper SSH keys instead of Amazon keys.
-NOTE: but for local installations from DVD this should not be case. Maybe something else went wrong...
 NOTE: also make sure that the user running packer has his own SSH keys!
 
 - vmware builds result in failure to retrieve preseed file
