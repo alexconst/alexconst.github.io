@@ -1,5 +1,5 @@
 % Packer for busy people
-%
+% 
 % 
 
 
@@ -46,7 +46,7 @@ In terms of file structure typically there is an `http` folder with the preseed 
     ├── virtualbox.sh
     └── vmware.sh
 ```
-The `packer_variables.sh` was created to make the template a bit more flexible and cleaner.
+The `packer_variables.sh` was created to make the template a bit more flexible and cleaner. This way you can also share the template without having to share credentials.
 
 
 # Debian preseed files explained
@@ -97,7 +97,7 @@ The changes shown above were made to have these configuration options defined in
 ```
 Configuration for a single root partition (so no swap).
 Although I haven't tested it, using LVM should work, even with a single root partition, since GRUB2 supports it.
-The preference for a single root partition without LVM was made because it keeps things simple when converting a local machine image (eg: QEMU) to a cloud machine image (eg: AWS AMI). Do keep in mind that this is matter for another tutorial.
+The preference for a single root partition without LVM was made because it keeps things simple when converting a local machine image (eg: QEMU) to a cloud machine image (eg: AWS AMI). *Note that this image conversion does not refer to Packer (which "forks" an existing AMI) and is a subject for a different tutorial on how to create your own AWS AMIs.*
 ```diff
 @@ -290,2 +304,2 @@
 -#d-i apt-setup/non-free boolean true
@@ -156,7 +156,8 @@ User variables can only be declared in the variables section and its syntax is a
 The third line shows how to use a previously declared variable.
 And the last line shows the use of configuration template variables, which are in the form `{{ Varname }}` or `{{ .Varname }}`, and are special variables filled by Packer automatically. In this case the `{{ .HTTPIP }}` and `{{ .HTTPPort }}` will be set by Packer with the information about its own local web server and then supplied to the guest OS during the installation process.
 
-The next sections will characterize a template file in detail (edited for readability purposes).
+The next sections will characterize a template file in detail, with most of the default options explicitly set in order to better demystify the magic.
+*(Note that the JSON file is not valid since it has been edited for legibility purposes)*.
 
 
 
@@ -187,7 +188,7 @@ The next sections will characterize a template file in detail (edited for readab
         "vbox_sum": "{{env `PACKER_VBOX_ISO_SUM`}}"
     },
 ```
-The `iso_url` and `iso_sha512` refer to to Debian CD ISO file and are set by shell environment variables.
+The `iso_url` and `iso_sha512` refer to to Debian CD ISO file and are set by shell environment variables, through the `packer_variables.sh` file.
 The `ssh_user` and `ssh_pass` refer to the user that will be created in the machine images.
 The `vbox_url` and `vbox_sum` refer to the VirtualBox guest addon tools that is to be installed.
 
@@ -233,11 +234,10 @@ The `vbox_url` and `vbox_sum` refer to the VirtualBox guest addon tools that is 
 ```
 The blocks above are common to the builders of local VMs (QEMU, VMware, VirtualBox).
 The `boot_command` relates to the Debian preseed file and it is what is typed by Packer when installing the guest OS. Using `root-login=false` enables the normal account to use sudo.
-
+The `http_directory` points to the directory with our preseed.cfg file.
 
 ## QEMU, Virtualbox, and VMware builders
 These blocks are more verbose than needed as several default values are set for clarity and could be omitted instead.
-The most interesting option is `headless` which you'll eventually want to set to true.
 ```json
 {
     "builders": [
@@ -285,10 +285,13 @@ The most interesting option is `headless` which you'll eventually want to set to
             },
         },
 ```
+The `type` specifies a supported Packer builder type.
+The `name` is a user defined descriptive that is also used as output directory. It must be unique.
+The most interesting option is `headless` which you'll eventually want to set to true for headless image creation.
 
 
 ## AWS EBS builder
-There is no need to publish the AWS credentials in the template since Packer is capable of looking into `~/.aws/credentials` automatically.
+There is no need to leak the AWS credentials into the template since Packer is capable of looking into `~/.aws/credentials` automatically.
 ```json
         {
             "type": "amazon-ebs",
@@ -305,7 +308,9 @@ There is no need to publish the AWS credentials in the template since Packer is 
 
 ## Provisioners
 
-Provisioners are executed sequentially and can also be set to execute on only some targets. Especially useful for cloud machine images which tend to differ a bit from local images. The `execute_command` is used to switch to root before executing the provisioning scripts (which require root permissions). The VM specific scripts make use of the `PACKER_BUILDER_TYPE` variable (automatically set by Packer) to decide if they should actually do anything.
+Provisioners are executed sequentially and can also be set to execute on `only` some targets. Especially useful for cloud machine images which tend to differ a bit from local images.
+The `execute_command` is used to switch to root before executing the provisioning scripts (which require root permissions).
+The VM specific scripts (ie: virtualbox.sh and vmware.sh) make use of the `PACKER_BUILDER_TYPE` environment variable (automatically set by Packer in the guest machine) to decide if they should actually do anything.
 ```json
 {
     "provisioners": [
@@ -337,7 +342,7 @@ To pass an environment variable to the provisioning scripts:
 ```
 
 
-# Post-processors
+## Post-processors
 The most common use is the creation of a Vagrant box. But can also be used to upload an image to an endpoint.
 ```json
 {
@@ -411,8 +416,8 @@ packer build -debug opensuse-packer.json
 To see what's going on in the VM, connect to it over VNC. Note that this is only useful if you're forced to do a headless install.
 ```
 grep "VNC" $PACKER_LOG_PATH
-telnet IP PORT
-krdc: choose vnc connection type and type: IP:PORT
+telnet $ip $port
+krdc: choose vnc connection type and type: $ip:$port
 ```
 
 When debugging provisioners it's possible to use a `null` builder to speed up the process.
@@ -461,7 +466,7 @@ NOTE: but for local installations from DVD this should not be case. Maybe someth
 NOTE: also make sure that the user running packer has his own SSH keys!
 
 - vmware builds result in failure to retrieve preseed file
-ERROR: Failed to retrieve the preconfiguration file. The file needed for preconfiguration could not be retrieved from http://ip:port/preseed.cfg. The installation will proceed in non-automated mode.
+ERROR: Failed to retrieve the preconfiguration file. The file needed for preconfiguration could not be retrieved from http://$ip:$port/preseed.cfg. The installation will proceed in non-automated mode.
 PROBLEM: likely a firewall issue.
 TROUBLESHOOTING: Check your firewall logs, or: From the host do a wget on the preseed file (as shown in the dialog error message of the installation). On the guest open a console during the installer (alt+F2). Type `route`, type `ip addr show`. Ping your gateway. Ping your IP. Ping google. Ping the preseed server. If it only fails for the preseed server then it's a firewall issue.
 SOLUTION:
@@ -474,6 +479,6 @@ PROBLEM: the `bios.bootorder` line causes problems (vmware bug?)
 SOLUTION: `sed -i.BAK '/bios.bootorder.*/d' *.vmx`
 
 - AWS invalid AMI ID
-- ERROR: Error querying AMI: InvalidAMIID.NotFound: The image id '[ami-12345678]' does not exist
-- SOLUTION: make sure you use an AMI that exists in the region that Packer is going to (launch and then make a snapshot of that instance to) create a new AMI
+ERROR: Error querying AMI: InvalidAMIID.NotFound: The image id '[ami-12345678]' does not exist
+SOLUTION: make sure you use an AMI that exists in the region that Packer is going to (launch and then make a snapshot of that instance to) create a new AMI
 
