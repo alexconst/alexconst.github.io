@@ -1,4 +1,4 @@
-% Packer for busy people
+% Packer -- automating virtual machine image creation
 % 
 % 
 
@@ -14,9 +14,12 @@ The outputs produced by Packer (eg: AWS AMI IDs; VMware image files) are called 
 
 [//]: # (Apparently Redhat's kickstart format is [not expressive enough](https://help.ubuntu.com/community/KickstartCompatibility#Integration_with_Preseed) to enable a full installation. )
 
-**Download Packer**
+**Download Packer: **
 <https://www.packer.io/downloads.html>
 <https://github.com/mitchellh/packer>
+
+**Packer recipe used for this tutorial: **
+<https://github.com/alexconst/packer_recipes/tree/master/debian-8-jessie>
 
 
 # Understanding the magic
@@ -46,7 +49,7 @@ In terms of file structure typically there is an `http` folder with the preseed 
     ├── virtualbox.sh
     └── vmware.sh
 ```
-The `packer_variables.sh` was created to make the template a bit more flexible and cleaner. This way you can also share the template without having to share credentials.
+The `packer_variables.sh` was created to make the template a bit more flexible and cleaner. This way you can publish and put the template under revision control without having to share your credentials (with the packer_variables.sh not under revision control). And also confining the only required configuration to it.
 
 
 # Debian preseed files explained
@@ -148,7 +151,6 @@ Packer supports two types of variables: user variables and configuration templat
 ```
     "vm_name": "debian-802-jessie",
     "ssh_user": "{{env `PACKER_SSH_USER`}}",
-    ...
     "passwd/username={{user `ssh_user`}} <wait>",
     "preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed.cfg <wait>",
 ```
@@ -304,6 +306,7 @@ There is no need to leak the AWS credentials into the template since Packer is c
             "ami_description": "packer debian 8 jessie"
         }
 ```
+The `ssh_username` here used is the one that already exists in the original `source_ami` image template, which in our case was created by Debian.
 
 
 ## Provisioners
@@ -357,10 +360,32 @@ The most common use is the creation of a Vagrant box. But can also be used to up
 }
 
 ```
+This will create a vagrant box `only` from our `jessie-vboxiso` image, compress it using the best compression possible, and keep the original VirtualBox image (by default it deletes a VM image after it creates a vagrant box).
+
+
+
+
+
+
+# Provisioner scripts (not) explained
+
+The provisioner shell scripts are well commented, so there isn't much of a point to verbatim copy-paste them here.
+The only worthwhile note is regarding the `vmware.sh` and `virtualbox.sh` scripts which are set for a console based system (ie, no X11). These would need to be adapted if a machine image with a desktop is desired (for example by installing KDE before installing the VM tools).
+
+
+
+
+
+
+
+
+
 
 # Building an image
 
 ```bash
+# Source variables for ISO, checksum, and SSH
+source packer_variables.sh
 # Because variables make things reusable:
 export packer_template="debian-8-jessie.json"
 export packer_builder_selected="jessie-qemu"
@@ -370,9 +395,11 @@ packer --version
 packer validate "$packer_template"
 # Get an overview of what the template includes (variables, builders, provisioners):
 packer inspect "$packer_template"
+
 # Produce machine images for all defined builders:
-# Note that this will fail for this template because you can't run both VMware and VirtualBox at the same time.
-packer build "$packer_template"
+# Note that this would actually fail for this template, because you can't run different hypervisors simultaneously on the same machine.
+# packer build "$packer_template"
+
 # Produce a machine image for the selected builder and keep the logs:
 # Note that this is the builder *name* variable (shown with inspect) not the builder *type* variable.
 export PACKER_LOG=1
@@ -381,7 +408,7 @@ packer build -only="$packer_builder_selected" "$packer_template"
 mv $PACKER_LOG_PATH  "output-${packer_builder_selected}.log"
 ```
 
-## Running the QEMU image
+**Launching the QEMU image: **
 
 While the VirtualBox and VMware are simple to run, the QEMU image is less so.
 So to run the created image in QEMU run the qemu command returned by:
@@ -398,27 +425,36 @@ Basically it provides 4 modes: user (aka SLIRP), tap, VDE and sockets.
 Packer uses the user mode networking. It's simple but has some limitations: ICMP traffic does not work and the guest is not directly accessible from the host or an external network (as it is with NAT).
 An attentative reader may ask *"so how does Packer connect to it over SSH?*
 It uses port forwarding. If you notice on the above qemu command there is a hostfwd option. So to connect to the guest you:
-```
+````bash
 ssh -p $port $ssh_user@localhost
 # where port is the port used in the hostfwd (in this case it was 3213)
 # and ssh_user is the user you defined in the template
-```
+````
 
+**Logging into an AWS instance: **
+
+````bash
+aws_credentials="..."   # should be your .pem file
+instance_ip="..."       # shown in the AWS EC2 management console
+ssh_user="admin"        # as listed in the AWS EBS builder
+ssh -i $aws_credentials $ssh_user@$instance_ip
+sudo bash               # if you need root access
+````
 
 
 # Debugging
 
 To debug problems (1) enable logging and eventually (2) run packer with the debug flag (it waits for the user to press enter after every step).
-```
+````bash
 PACKER_LOG=1 PACKER_LOG_PATH=/tmp/packer.log
 packer build -debug opensuse-packer.json
-```
+````
 To see what's going on in the VM, connect to it over VNC. Note that this is only useful if you're forced to do a headless install.
-```
+````bash
 grep "VNC" $PACKER_LOG_PATH
 telnet $ip $port
-krdc: choose vnc connection type and type: $ip:$port
-```
+krdc & # choose vnc connection type and type: $ip:$port
+````
 
 When debugging provisioners it's possible to use a `null` builder to speed up the process.
 
@@ -457,6 +493,7 @@ SOLUTION: Replacing the net device. Example: "net_device": "virtio-net-pci",
 - qemu freeze
 ERROR: packer freezes during qemu build
 http://serverfault.com/questions/362038/qemu-kvm-virtual-machine-virtio-network-freeze-under-load
+NOTE: leaving it here for reference???
 
 - ssh handshake failure
 ERROR: handshake error: ssh: handshake failed: read tcp 127.0.0.1:3213: connection reset by peer
@@ -479,5 +516,5 @@ SOLUTION: `sed -i.BAK '/bios.bootorder.*/d' *.vmx`
 
 - AWS invalid AMI ID
 ERROR: Error querying AMI: InvalidAMIID.NotFound: The image id '[ami-12345678]' does not exist
-SOLUTION: make sure you use an AMI that exists in the region that Packer is going to (launch and then make a snapshot of that instance to) create a new AMI
+SOLUTION: make sure you use an AMI that exists in the region that Packer is going to (launch and then make a snapshot of that instance to) create a new AMI. Check the `region` variable in the template file or your `$HOME/.aws/config`
 
