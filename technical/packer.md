@@ -1,13 +1,13 @@
-% Packer -- automating virtual machine image creation
+% Packer -- a hands-on tutorial
 % 
 % 
 
 
 # What is Packer
 
-Packer is a tool for creating (in parallel) identical machine images for multiple platforms from a single source configuration.
+Packer is a tool for automating the creation of identical virtual machine images for multiple platforms from a single source configuration. It even allows the creation of multiple machine images in parallel.
 Supported platforms include: AWS EC2 AMI, DigitalOcean, Docker, Google Compute Engine, OpenStack, Parallels, QEMU, VirtualBox, VMware.
-The provisioning (ie: installation and configuration of software into the machine image) can be done using one or more of the supported configuration management tools: shell scripts, Ansible, Chef, Puppet, Salt.
+And the provisioning (ie: installation and configuration of software into the machine image) can be done using one or more of the supported configuration management tools: shell scripts, Ansible, Chef, Puppet, Salt.
 After an image is created it's possible to run a post-processor to better suite the desired intent, for example vSphere (to upload an image to an endpoint) or Vagrant (to convert the image into a valid Vagrant box).
 The advantage of using Packer is that it allows creating the same image for multiple platforms and also makes possible for problem resolution to be done at image creation. Another benefit is that after an image is created you can spin a fully configured machine in just a couple of minutes.
 The outputs produced by Packer (eg: AWS AMI IDs; VMware image files) are called artifacts.
@@ -367,11 +367,11 @@ This will create a vagrant box `only` from our `jessie-vboxiso` image, compress 
 
 
 
-# Provisioner scripts (not) explained
+# Provisioner scripts (not really) explained (here)
 
-The provisioner shell scripts are well commented, so there isn't much of a point to verbatim copy-paste them here.
-The only worthwhile note is regarding the `vmware.sh` and `virtualbox.sh` scripts which are set for a console based system (ie, no X11). These would need to be adapted if a machine image with a desktop is desired (for example by installing KDE before installing the VM tools).
-
+The provisioner shell scripts are well commented, so there isn't much of a point to verbatim copy-paste them here. Just check the code at github.
+The only worthwhile notes is regarding the `vmware.sh` and `virtualbox.sh` scripts for installing the VM tools. Since we're aiming for a minimal installation there is no X11, which means the corresponding modules for the VM tools will not be installed. These scripts would need to be adapted if a machine image with a desktop is desired (for example by installing KDE before installing the VM tools).
+The other note is that since the cloud images are different than the ones created using VMware/VirtualBox/QEMU only one provisioning script, specific to it, is executed for the cloud images.
 
 
 
