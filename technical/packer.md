@@ -501,14 +501,14 @@ https://github.com/mitchellh/packer/issues/788#issuecomment-36421299
 PROBLEM: the /etc/rc.d/rc.local file needs to be cleaned up to have the proper SSH keys instead of Amazon keys.
 NOTE: also make sure that the user running packer has his own SSH keys!
 
-- vmware builds result in failure to retrieve preseed file
+- vmware image creation halts because it fails to retrieve the preseed file
 ERROR: Failed to retrieve the preconfiguration file. The file needed for preconfiguration could not be retrieved from http://$ip:$port/preseed.cfg. The installation will proceed in non-automated mode.
 PROBLEM: likely a firewall issue.
 TROUBLESHOOTING: Check your firewall logs, or: From the host do a wget on the preseed file (as shown in the dialog error message of the installation). On the guest open a console during the installer (alt+F2). Type `route`, type `ip addr show`. Ping your gateway. Ping your IP. Ping google. Ping the preseed server. If it only fails for the preseed server then it's a firewall issue.
 SOLUTION:
 ```
 ifconfig | grep -A1 vmnet | sed 's|\.1 |\.0 |g'
-iptables -A INPUT  -s <the vmnet* inet interface>/24  -j ACCEPT
+iptables -A INPUT  -s <the shown vmnet* inet addr interface>/24  -j ACCEPT
 ```
 - in vmware, after OS installation it's impossible to change the boot device in the bios (eg: boot to rescue CD)
 PROBLEM: the `bios.bootorder` line causes problems (vmware bug?)
