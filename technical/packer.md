@@ -49,7 +49,7 @@ In terms of file structure typically there is an `http` folder with the preseed 
     ├── virtualbox.sh
     └── vmware.sh
 ```
-The `packer_variables.sh` was created to make the template a bit more flexible and cleaner. This way you can publish and put the template under revision control without having to share your credentials (with the packer_variables.sh not under revision control). And also confining the only required configuration to it.
+The `packer_variables.sh` was created to make the template a bit more flexible and cleaner. This way you can publish and put the template under revision control without having to share your credentials (with the `packer_variables.sh` not under revision control). And also confining the only required configuration to it.
 
 
 # Debian preseed files explained
@@ -122,7 +122,7 @@ Tweak the repos. Aim for the smallest installation with `ssh-server`. Give an an
 # Template files explained
 
 The template files are declared using JSON.
-*(minor pet peeve alert!) Which is unfortunate. If YAML had been used it would have been possible to use anchor and references, which would avoid the duplicate declarations in the boot_command for several builders. Another annoyance with JSON is that it doesn't support comments.*
+*(minor pet peeve alert!) Which is unfortunate. If YAML had been used it would have been possible to use anchor and references, which would avoid the duplicate declarations in the `boot_command` for several builders. Another annoyance with JSON is that it doesn't support comments.*
 
 While the only mandatory section is the builders, the typical structure is as follows:
 ```json
@@ -148,7 +148,7 @@ While the only mandatory section is the builders, the typical structure is as fo
 The description and variables are self explanatory. The builders specifies the format and the instructions on how to build an image using the different virtualization tools (eg: QEMU) and cloud platforms (eg: AWS). The provisioners defines the scripts and/or playbooks for configuring the machine (eg: installing and configuring a web server). And finally the post-processors section instructs on what should be done after the image has been produced (eg: create a Vagrant box).
 
 Packer supports two types of variables: user variables and configuration template variables.
-```
+```text
     "vm_name": "debian-802-jessie",
     "ssh_user": "{{env `PACKER_SSH_USER`}}",
     "passwd/username={{user `ssh_user`}} <wait>",
@@ -337,7 +337,7 @@ The VM specific scripts (ie: virtualbox.sh and vmware.sh) make use of the `PACKE
     ],
 ```
 To pass an environment variable to the provisioning scripts:
-```
+```text
             "environment_vars": [
                 "varexample={{user `vm_name`}}",
                 "varfoo=bar"
@@ -412,18 +412,18 @@ mv $PACKER_LOG_PATH  "output-${packer_builder_selected}.log"
 
 While the VirtualBox and VMware are simple to run, the QEMU image is less so.
 So to run the created image in QEMU run the qemu command returned by:
-```
+```bash
 grep  "Executing.*qemu-system" $PACKER_LOG_PATH | sed -e 's|.*Executing \(.*\): \[\]string{\(.*\)|\1 \2|g ; s|"-\([^"]*\)",|-\1|g ; s|",|"|g ; s|"||g ; s|}||g ; s|-cdrom.*\.iso||g'
 ```
 It should be something similar to this:
-```
+```bash
 /usr/bin/qemu-system-x86_64 -machine type=pc,accel=kvm -device virtio-net,netdev=user.0 -m 512M -boot once=d -name packer-jessie-qemu -netdev user,id=user.0,hostfwd=tcp::3213-:22 -drive file=output-jessie-qemu/packer-jessie-qemu,if=virtio,cache=writeback,discard=ignore -vnc 0.0.0.0:47 -display sdl
 ```
 
 Now, QEMU is not the most user friendly (when compared to VMware or VirtualBox) when it comes to network.
 Basically it provides 4 modes: user (aka SLIRP), tap, VDE and sockets.
 Packer uses the user mode networking. It's simple but has some limitations: ICMP traffic does not work and the guest is not directly accessible from the host or an external network (as it is with NAT).
-An attentative reader may ask *"so how does Packer connect to it over SSH?*
+An attentative reader may ask *so how does Packer connect to it over SSH?*
 It uses port forwarding. If you notice on the above qemu command there is a hostfwd option. So to connect to the guest you:
 ````bash
 ssh -p $port $ssh_user@localhost
