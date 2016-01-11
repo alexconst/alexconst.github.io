@@ -1,11 +1,12 @@
 % Packer -- a hands-on tutorial
-% 
-% 
+% Alexandre Constantino
+% 2016-01-08
+
 
 
 # What is Packer
 
-Packer is a tool for automating the creation of identical virtual machine images for multiple platforms from a single source configuration. It even allows the creation of multiple machine images in parallel.
+Packer is a tool for automating the creation of identical virtual machine images for multiple platforms from a single source configuration. Allowing for the image creation process to execute in parallel for multiple machine images.
 Supported platforms include: AWS EC2 AMI, DigitalOcean, Docker, Google Compute Engine, OpenStack, Parallels, QEMU, VirtualBox, VMware.
 And the provisioning (ie: installation and configuration of software into the machine image) can be done using one or more of the supported configuration management tools: shell scripts, Ansible, Chef, Puppet, Salt.
 After an image is created it's possible to run a post-processor to better suite the desired intent, for example vSphere (to upload an image to an endpoint) or Vagrant (to convert the image into a valid Vagrant box).
@@ -49,7 +50,7 @@ In terms of file structure typically there is an `http` folder with the preseed 
     ├── virtualbox.sh
     └── vmware.sh
 ```
-The `packer_variables.sh` was created to make the template a bit more flexible and cleaner. This way you can publish and put the template under revision control without having to share your credentials (with the `packer_variables.sh` not under revision control). And also confining the only required configuration to it.
+The `packer_variables.sh` was created to make the template a bit more flexible and cleaner. This way you can share and put the template under revision control without having to share your credentials (with the `packer_variables.sh` not being under revision control). As well as leaving all the required configuration (regarding credentials and OS installation image) to this single script, which is under 10 lines.
 
 
 # Debian preseed files explained
@@ -100,7 +101,10 @@ The changes shown above were made to have these configuration options defined in
 ```
 Configuration for a single root partition (so no swap).
 Although I haven't tested it, using LVM should work, even with a single root partition, since GRUB2 supports it.
-The preference for a single root partition without LVM was made because it keeps things simple when converting a local machine image (eg: QEMU) to a cloud machine image (eg: AWS AMI). *Note that this image conversion does not refer to Packer (which "forks" an existing AMI) and is a subject for a different tutorial on how to create your own AWS AMIs.*
+The preference for a single root partition without LVM was made because it keeps things simple when converting a local machine image (eg: QEMU) to a cloud machine image (eg: AWS AMI)[^amicreation].
+
+[^amicreation]: Note that this image conversion process has nothing to do with Packer and is a subject for a different tutorial on how to create your own AWS AMIs. Packer actually "forks/clones" an existing AMI identified by `source_ami`.
+
 ```diff
 @@ -290,2 +304,2 @@
 -#d-i apt-setup/non-free boolean true
@@ -121,8 +125,9 @@ Tweak the repos. Aim for the smallest installation with `ssh-server`. Give an an
 
 # Template files explained
 
-The template files are declared using JSON.
-*(minor pet peeve alert!) Which is unfortunate. If YAML had been used it would have been possible to use anchor and references, which would avoid the duplicate declarations in the `boot_command` for several builders. Another annoyance with JSON is that it doesn't support comments.*
+The template files are declared using JSON[^json].
+
+[^json]: *(minor pet peeve alert!)* The JSON choice is unfortunate. If YAML had been used it would have been possible to use anchor and references, which would avoid the duplicate declarations in the `boot_command` for several builders. Another annoyance with JSON is that it doesn't support comments.
 
 While the only mandatory section is the builders, the typical structure is as follows:
 ```json
@@ -145,7 +150,7 @@ While the only mandatory section is the builders, the typical structure is as fo
     ]
 }
 ```
-The description and variables are self explanatory. The builders specifies the format and the instructions on how to build an image using the different virtualization tools (eg: QEMU) and cloud platforms (eg: AWS). The provisioners defines the scripts and/or playbooks for configuring the machine (eg: installing and configuring a web server). And finally the post-processors section instructs on what should be done after the image has been produced (eg: create a Vagrant box).
+The description and variables are self explanatory. The builders section specify the format and the instructions on how to build an image using the different virtualization tools (eg: QEMU) and cloud platforms (eg: AWS). The provisioners define the scripts and/or playbooks for configuring the machine (eg: installing and configuring a web server). And finally the post-processors section instructs on what should be done after the image has been produced (eg: create a Vagrant box).
 
 Packer supports two types of variables: user variables and configuration template variables.
 ```text
@@ -159,7 +164,7 @@ The third line shows how to use a previously declared variable.
 And the last line shows the use of configuration template variables, which are in the form `{{ Varname }}` or `{{ .Varname }}`, and are special variables filled by Packer automatically. In this case the `{{ .HTTPIP }}` and `{{ .HTTPPort }}` will be set by Packer with the information about its own local web server and then supplied to the guest OS during the installation process.
 
 The next sections will characterize a template file in detail, with most of the default options explicitly set in order to better demystify the magic.
-*(Note that the JSON file is not valid since it has been edited for legibility purposes)*.
+*(Note that the JSON snippets here may not be valid since they were edited for syntax highlight purposes)*.
 
 
 
@@ -234,12 +239,13 @@ The `vbox_url` and `vbox_sum` refer to the VirtualBox guest addon tools that is 
             "shutdown_command": "echo '{{user `ssh_pass`}}' | sudo -S shutdown -P now"
         },
 ```
+
 The blocks above are common to the builders of local VMs (QEMU, VMware, VirtualBox).
 The `boot_command` relates to the Debian preseed file and it is what is typed by Packer when installing the guest OS. Using `root-login=false` enables the normal account to use sudo.
 The `http_directory` points to the directory with our preseed.cfg file.
 
 ## QEMU, Virtualbox, and VMware builders
-These blocks are more verbose than needed as several default values are set for clarity and could be omitted instead.
+These blocks are more verbose than needed as several default values have been explicitly set for transparency purposes (lifting the veil of magic here) but could have been omitted instead.
 ```json
 {
     "builders": [
@@ -306,7 +312,7 @@ There is no need to leak the AWS credentials into the template since Packer is c
             "ami_description": "packer debian 8 jessie"
         }
 ```
-The `ssh_username` here used is the one that already exists in the original `source_ami` image template, which in our case was created by Debian.
+The `ssh_username` here used is the one that already exists in the original `source_ami` image template, which in our case is a Debian image that was created by members of the Debian project.
 
 
 ## Provisioners
@@ -370,7 +376,7 @@ This will create a vagrant box `only` from our `jessie-vboxiso` image, compress 
 # Provisioner scripts (not really) explained (here)
 
 The provisioner shell scripts are well commented, so there isn't much of a point to verbatim copy-paste them here. Just check the code at github.
-The only worthwhile notes is regarding the `vmware.sh` and `virtualbox.sh` scripts for installing the VM tools. Since we're aiming for a minimal installation there is no X11, which means the corresponding modules for the VM tools will not be installed. These scripts would need to be adapted if a machine image with a desktop is desired (for example by installing KDE before installing the VM tools).
+The only worthwhile notes are regarding the `vmware.sh` and `virtualbox.sh` scripts for installing the VM tools. Since we're aiming for a minimal installation there is no X11, which means the corresponding modules for the VM tools will not be installed. These scripts would need to be adapted if a machine image with a desktop is desired (for example by installing KDE before installing the VM tools).
 The other note is that since the cloud images are different than the ones created using VMware/VirtualBox/QEMU only one provisioning script, specific to it, is executed for the cloud images.
 
 
@@ -384,7 +390,7 @@ The other note is that since the cloud images are different than the ones create
 # Building an image
 
 ```bash
-# Source variables for ISO, checksum, and SSH
+# Source variables for ISO, checksum, and SSH credentials
 source packer_variables.sh
 # Because variables make things reusable:
 export packer_template="debian-8-jessie.json"
@@ -517,4 +523,6 @@ SOLUTION: `sed -i.BAK '/bios.bootorder.*/d' *.vmx`
 - AWS invalid AMI ID
 ERROR: Error querying AMI: InvalidAMIID.NotFound: The image id '[ami-12345678]' does not exist
 SOLUTION: make sure you use an AMI that exists in the region that Packer is going to (launch and then make a snapshot of that instance to) create a new AMI. Check the `region` variable in the template file or your `$HOME/.aws/config`
+
+# Footnotes
 
