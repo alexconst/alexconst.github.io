@@ -13,6 +13,7 @@ $base-line-height:  1.5;
 
 $spacing-unit:      30px;
 
+// Autumn theme:
 $grey-color:        #cccccc;
 $grey-color-light:  lighten($grey-color, 40%);
 $grey-color-dark:   darken($grey-color, 25%);
@@ -27,6 +28,10 @@ $background-color:  $brown-color;
 $brand-color:       $red-color;
 $headers-color:     $golden-color;
 $line-color:        $red-brown-color;
+
+// Autumn theme variant:
+/*$background-color:  #262216;*/
+
 
 $on-palm:           600px;
 $on-laptop:         800px;
