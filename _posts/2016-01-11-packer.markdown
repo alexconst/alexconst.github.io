@@ -37,7 +37,7 @@ called artifacts.
 <https://github.com/mitchellh/packer>
 
 **Packer recipe used for this tutorial:**  
-<https://github.com/alexconst/packer_recipes/tree/master/debian-8-jessie>
+<https://github.com/alexconst/packer_recipes/tree/blog/debian-8-jessie>
 
 # Understanding the magic
 
