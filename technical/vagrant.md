@@ -73,7 +73,7 @@ Note that the installed plugins will be older than the lastest versions from git
 # Using Vagrant
 
 
-## Vagrant 101
+## Basics
 
 This section characterizes a typical Vagrant workflow.
 
@@ -118,7 +118,37 @@ vagrant box list
 ````
 
 
-## Vagrant round 2
+
+
+## Snapshots
+
+Taking snapshots is simple, but there are a few caveats.
+If you use `push` and `pop` it is not recommended to mix them with `save` and `restore` and `delete`.
+Also some providers (VirtualBox included) require that when `delete` is used that all subsequent snapshots are deleted in the reverse order that they were taken.
+Using snapshots (choose one and only one option):
+````bash
+# list existing snapshots
+vagrant snapshot list
+
+# option 1:
+# take snapshot and push it onto the snapshot stack
+vagrant snapshot push
+# restore a snapshot and remove it from the snapshot stack
+vagrant snapshot pop
+
+# option 2:
+# take a snapshot
+vagrant snapshot save $snap_name
+# restore a snapshot
+vagrant snapshot restore $snap_name
+# delete a snapshot
+vagrant snapshot delete $snap_name
+````
+
+
+
+
+## Your own environment
 
 This section details how to add a local Vagrant box and set up a development environment.
 
@@ -155,7 +185,8 @@ config.vm.box = "alexconst/debian/jessie64/20160115.0.1"
 config.vm.hostname = "vagrant-devbox"
 
 # set text to be shown after 'vagrant up'
-config.vm.post_up_message = "This text can be useful for detailing instructions how to access the development environment. More at https://site.web"
+# this text can be useful for detailing instructions how to access the development environment
+config.vm.post_up_message = "A Vagrant tutorial can be found at http://alexconst.github.io/"
 
 # configure shared folders (1st host, 2nd guest)
 config.vm.synced_folder "$HOME/share_vagrant", "/vagrant"
@@ -168,10 +199,9 @@ config.vm.network "forwarded_port", host: 8080, guest: 80
 config.vm.network "forwarded_port", host: 12003, guest: 2003, protocol: "tcp"
 config.vm.network "forwarded_port", host: 12003, guest: 2003, protocol: "udp"
 
-# provision the environment, by uploading a script and executing it
-# path can be an URL
+# provision done by uploading a script and executing it (path can be an URL)
 config.vm.provision "shell", path: "scripts/packages.sh"
-# provision the environment, by executing a script that already exists on the guest
+# provision done by executing an already existing script in the guest
 config.vm.provision "shell", inline: "/bin/bash /path/to/script.sh"
 
 ````
@@ -185,38 +215,16 @@ vagrant ssh
 
 
 
-
-## Vagrant graduation
-
-_TODO_ detail multiple machines with ansible
+## AWS environment
 
 _TODO_ AWS
 
 
-## Vagrant snapshots
 
-Taking snapshots is simple, but there are a few caveats.
-If you use `push` and `pop` it is not recommended to mix them with `save` and `restore` and `delete`.
-Also some providers (VirtualBox included) require that when `delete` is used that all subsequent snapshots are deleted in the reverse order that they were taken.
-Using snapshots (choose one and only one option):
-````bash
-# list existing snapshots
-vagrant snapshot list
 
-# option 1:
-# take snapshot and push it onto the snapshot stack
-vagrant snapshot push
-# restore a snapshot and remove it from the snapshot stack
-vagrant snapshot pop
+## Multi-machine environment
 
-# option 2:
-# take a snapshot
-vagrant snapshot save $snap_name
-# restore a snapshot
-vagrant snapshot restore $snap_name
-# delete a snapshot
-vagrant snapshot delete $snap_name
-````
+_TODO_ detail multiple machines with ansible
 
 
 
