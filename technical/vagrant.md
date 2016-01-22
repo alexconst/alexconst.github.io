@@ -303,18 +303,13 @@ ERROR:
 ````
 SOLUTION: `cd` into the directory with the box file and run the `vagrant box add` command from there refering directly to the filename (ie: no path)
 
-- non-fatal error message about tty
-ERROR: `stdin: is not a tty` or `unable to re-open stdin: No such file or directory`
+- non-fatal error message about stdin and tty
+ERROR: `stdin: is not a tty`
 REFERENCES:
-http://serverfault.com/questions/500764/dpkg-reconfigure-unable-to-re-open-stdin-no-file-or-directory
 http://foo-o-rama.com/vagrant--stdin-is-not-a-tty--fix.html
 https://github.com/Varying-Vagrant-Vagrants/VVV/issues/517
 https://github.com/mitchellh/vagrant/issues/1673
-SOLUTION 1 (which should be enough): prepend the following line to any script with apt-get calls:
-````bash
-export DEBIAN_FRONTEND=noninteractive
-````
-SOLUTION 2: add the following as the first provisioner:
+SOLUTION: add the following as the first provisioner:
 ````ruby
 config.vm.provision "fix-no-tty", type: "shell" do |s|
     s.privileged = false
@@ -322,6 +317,19 @@ config.vm.provision "fix-no-tty", type: "shell" do |s|
 end
 ````
 
+- non-fatal error message about stdin when using apt
+ERROR: `dpkg-preconfigure: unable to re-open stdin: No such file or directory`
+REFERENCES:
+http://serverfault.com/questions/500764/dpkg-reconfigure-unable-to-re-open-stdin-no-file-or-directory
+SOLUTION 1: prepend the following line to any script with apt-get calls:
+````bash
+export DEBIAN_FRONTEND=noninteractive
+````
+SOLUTION 2: add the following lines before running other provisioners that use apt
+````ruby
+config.vm.provision "shell", inline: "echo 'export DEBIAN_FRONTEND=noninteractive' >> /root/.profile"
+config.vm.provision "shell", inline: "for user in /home/*; do echo 'export DEBIAN_FRONTEND=noninteractive' >> $user/.profile; done"
+````
 
 
 # Footnotes
