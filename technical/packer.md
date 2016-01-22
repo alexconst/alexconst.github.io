@@ -37,8 +37,8 @@ The beauty of this solution is that it makes possible to put a machine image und
 
 In terms of file structure typically there is an `http` folder with the preseed file and a `scripts` folder with the provisioning scripts. Example:
 ```bash
-./debian-8-jessie
-├── debian-8-jessie.json
+./debian-8-jessie-amd64
+├── debian-8-jessie-amd64.json
 ├── http
 │   ├── debian-jessie-original-preseed.cfg
 │   └── preseed.cfg
@@ -172,9 +172,10 @@ The next sections will characterize a template file in detail, with most of the 
 ## Description and variables
 ```json
 {
-    "description": "Creates a Debian 8 (Jessie) machine image.",
+    "description": "Creates a Debian 8 (Jessie) amd64 machine image.",
     "variables": {
-        "vm_name": "debian-802-jessie",
+        "outputs_dir": "builds.ignore",
+        "vm_name": "debian-802-jessie-amd64",
         "iso_url": "{{env `PACKER_DEBIAN_ISO_URL`}}",
         "iso_sha512": "{{env `PACKER_DEBIAN_ISO_SUM`}}",
         "cores": "2",
@@ -195,9 +196,11 @@ The next sections will characterize a template file in detail, with most of the 
         "vbox_sum": "{{env `PACKER_VBOX_ISO_SUM`}}"
     },
 ```
+The `vm_name` will be used as the filename (without the extension) for the image disk file created by the different builders.
 The `iso_url` and `iso_sha512` refer to to Debian CD ISO file and are set by shell environment variables, through the `packer_variables.sh` file.
 The `ssh_user` and `ssh_pass` refer to the user that will be created in the machine images.
 The `vbox_url` and `vbox_sum` refer to the VirtualBox guest addon tools that is to be installed.
+The `outputs_dir` will be were outputs will be saved. The ".ignore" is just a pattern that I use in rsync for skipping files during backups.
 
 ## boot_command and other options common to local VMs
 ```json
@@ -236,13 +239,18 @@ The `vbox_url` and `vbox_sum` refer to the VirtualBox guest addon tools that is 
             "ssh_password": "{{user `ssh_pass`}}",
             "ssh_port": "{{user `ssh_port`}}",
             "ssh_wait_timeout": "{{user `ssh_wait_timeout`}}",
-            "shutdown_command": "echo '{{user `ssh_pass`}}' | sudo -S shutdown -P now"
+            "shutdown_command": "echo '{{user `ssh_pass`}}' | sudo -S shutdown -P now",
+            "output_directory": "{{user `outputs_dir`}}/{{user `vm_name`}}_{{build_name}}/"
         },
 ```
 
 The blocks above are common to the builders of local VMs (QEMU, VMware, VirtualBox).
 The `boot_command` relates to the Debian preseed file and it is what is typed by Packer when installing the guest OS. Using `root-login=false` enables the normal account to use sudo.
 The `http_directory` points to the directory with our preseed.cfg file.
+The `build_name` is actually a template function from Packer, despite its misleading name.[^docs_vagrant][^docs_templates]
+
+[^docs_templates]: `build_name` is actually a template global function <https://www.packer.io/docs/templates/configuration-templates.html>
+[^docs_vagrant]: In the Vagrant post-processor there is the variable `{{.BuildName}}` <https://www.packer.io/docs/post-processors/vagrant.html>
 
 ## QEMU, Virtualbox, and VMware builders
 These blocks are more verbose than needed as several default values have been explicitly set for transparency purposes (lifting the veil of magic here) but could have been omitted instead.
@@ -332,7 +340,10 @@ The VM specific scripts (ie: virtualbox.sh and vmware.sh) make use of the `PACKE
                 "scripts/virtualbox.sh",
                 "scripts/vmware.sh",
                 "scripts/cleanup.sh"
-            ],
+            ]
+        },
+
+        {
             "type": "shell",
             "only": ["jessie-awsebs"],
             "execute_command": "{{.Vars}} sudo -E -S bash '{{.Path}}'",
@@ -360,25 +371,29 @@ The most common use is the creation of a Vagrant box. But can also be used to up
             "type": "vagrant",
             "only": ["jessie-vboxiso"],
             "keep_input_artifact": true,
-            "compression_level": 9
+            "compression_level": 9,
+            "output": "{{user `outputs_dir`}}/{{user `vm_name`}}_{{.BuildName}}.box"
         }
     ]
 }
 
 ```
-This will create a vagrant box `only` from our `jessie-vboxiso` image, compress it using the best compression possible, and keep the original VirtualBox image (by default it deletes a VM image after it creates a vagrant box).
+This will create a vagrant box `only` from the listed image, compress it using the best compression possible, and keep the original VirtualBox image (by default it deletes a VM image after it creates a vagrant box). The Vagrant boxes will be saved to the folder set by the `outputs_dir` variable.
 
 
 
 
 
 
-# Provisioner scripts (not really) explained (here)
+# Provisioner scripts overview
 
-The provisioner shell scripts are well commented, so there isn't much of a point to verbatim copy-paste them here. Just check the code at github.
-The only worthwhile notes are regarding the `vmware.sh` and `virtualbox.sh` scripts for installing the VM tools. Since we're aiming for a minimal installation there is no X11, which means the corresponding modules for the VM tools will not be installed. These scripts would need to be adapted if a machine image with a desktop is desired (for example by installing KDE before installing the VM tools).
-The other note is that since the cloud images are different than the ones created using VMware/VirtualBox/QEMU only one provisioning script, specific to it, is executed for the cloud images.
-
+The provisioner shell scripts are well commented, so there isn't much of a point in detailing them here. Instead here is a general overview of them:
+- The `base.sh` script refreshes the package listing, and tweaks GRUB and the SSH daemon configs for faster logins.
+- The `vmware.sh` and `virtualbox.sh` scripts are used for installing the VM tools. But note that since we're aiming for a minimal installation there is no X11, which means the corresponding modules for the VM tools will not be installed. These scripts would need to be adapted if a machine image with a desktop is desired (for example by installing KDE before installing the VM tools).
+- The `cleanup.sh` script cleans package downloads and listings, as well as DHCP leases and udev rules.
+- Because the cloud images are different than the ones created using VMware/VirtualBox/QEMU, the provisioning scripts executed are different. In particular there is a single `cloud.sh` script which is responsible for removing any previous SSH keys.
+- `vagrant.sh` sets up a working Vagrant box by configuring the vagrant user and granting it password-less sudo.
+- `motd.sh` adds a dynamic MOTD that prints system information on login.
 
 
 
@@ -393,7 +408,7 @@ The other note is that since the cloud images are different than the ones create
 # Source variables for ISO, checksum, and SSH credentials
 source packer_variables.sh
 # Because variables make things reusable:
-export packer_template="debian-8-jessie.json"
+export packer_template="debian-8-jessie-amd64.json"
 export packer_builder_selected="jessie-qemu"
 # Make sure it's installed and runs:
 packer --version
@@ -411,7 +426,11 @@ packer inspect "$packer_template"
 export PACKER_LOG=1
 export PACKER_LOG_PATH="/tmp/packer_${packer_builder_selected}.log"
 packer build -only="$packer_builder_selected" "$packer_template"
-mv $PACKER_LOG_PATH  "output-${packer_builder_selected}.log"
+
+# Save the log file
+tmp=$(echo "${packer_template%.*}" | sed 's|\(.*-\).*\(-.*-.*\)|\1*\2|g')
+tmp=`eval echo "builds.ignore/${tmp}_${packer_builder_selected}"`
+mv $PACKER_LOG_PATH  $tmp/
 ```
 
 **Launching the QEMU image: **
@@ -497,9 +516,13 @@ PROBLEM: either incorrect device name or it's not enabled in the distro (maybe d
 SOLUTION: Replacing the net device. Example: "net_device": "virtio-net-pci",
 
 - qemu freeze
-ERROR: packer freezes during qemu build
+ERROR: qemu freezes during the image build
+PROBLEM: from information found on the web, the likely cause is a bug in the "virtio-net" network device.
+WORKAROUND: replace `virtio-net` with `e1000` in the `net_device` setting of the QEMU builder. Both are 1 GB/s devices, but the `virtio-net` has the best performance. So this workaround is not optimal.
+REFERENCES:
 http://serverfault.com/questions/362038/qemu-kvm-virtual-machine-virtio-network-freeze-under-load
-NOTE: leaving it here for reference???
+http://wiki.qemu.org/Documentation/Networking
+https://en.wikibooks.org/wiki/QEMU/Devices/Network
 
 - ssh handshake failure
 ERROR: handshake error: ssh: handshake failed: read tcp 127.0.0.1:3213: connection reset by peer
@@ -523,6 +546,38 @@ SOLUTION: `sed -i.BAK '/bios.bootorder.*/d' *.vmx`
 - AWS invalid AMI ID
 ERROR: Error querying AMI: InvalidAMIID.NotFound: The image id '[ami-12345678]' does not exist
 SOLUTION: make sure you use an AMI that exists in the region that Packer is going to (launch and then make a snapshot of that instance to) create a new AMI. Check the `region` variable in the template file or your `$HOME/.aws/config`
+
+- provisioners are not being executed
+ERROR: it's possible that there is some sort of provisioner overlapping.
+SOLUTION: make sure you only have one provisioner entry per curly braces. Something like this:
+````json
+"provisioners": [
+    {
+        type: "...",
+        only: "...",
+        scripts: [
+            ...
+        ]
+    },
+    {
+        type: "...",
+        scripts: [
+            ...
+        ]
+    }
+]
+````
+
+- QEMU fails to start
+ERROR: Qemu stderr: ioctl(KVM_CREATE_VM) failed: 16 Device or resource busy
+PROBLEM: you are running other virtualization software (eg: VirtualBox or VMware) at the same time.
+SOLUTION: terminate the execution of the other virtualization software.
+
+
+
+
+
+
 
 # Footnotes
 
