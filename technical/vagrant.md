@@ -1,7 +1,7 @@
 # What is Vagrant
 
 Vagrant is a tool for deploying software environments in a configurable and reproducible form, from a single source configuration file. Whereas a software environment consists of one or more virtual machine or container instances; and most likely with network port forwarding and folder shares configured as well.
-Its typical use case is the deployment of development environments. Because the VM deployment is reproducible it makes possible to have the same exact environment across multiple machines, thus eliminating the problems caused by differences in system configuration both across teams and infrastructure.
+Its typical use case is the deployment of development and test environments. Because the VM deployment is reproducible it makes possible to have the same exact environment across multiple machines, thus eliminating the problems caused by differences in system configuration both across teams and infrastructure.
 With a single command, `vagrant up`, it becomes possible to deploy a whole environment in just a few minutes.
 Supported providers (ie: virtualization platforms) include: VirtualBox, VMWare, HyperV, Docker, KVM, AWS and others.
 The provisioning (ie: installation and configuration of software into the instantiated VM, or container in the case of Docker) can be done using one or more of the supported configuration management tools: shell scripts, Ansible, CFEngine, Chef, Docker, Puppet, Salt.
@@ -20,8 +20,10 @@ Vagrant acts as a wrapper around different providers (eg: VirtualBox) and provis
 - uniform: it works the same way across multiple cloud providers and virtualization platforms (assuming Vagrant boxes are available for those providers); and
 - reproducible: you always get the same development environment when you start a new development environment.
 
-The Vagrant boxes are created using Packer. And these consist on a tar file which include the virtualization software VM files (eg: .ovf and .vmdk) and a couple of Vagrant specific metadata files.
+The Vagrant boxes are created using Packer. And these consist on a tar file which include the virtualization software VM files (eg: .ovf and .vmdk) and a couple of Vagrant specific files.
 The configuration of a development environment is done via a Vagrantfile. It includes settings for box selection, network port forwarding, shared folders, credentials, provisioning scripts, and other settings; for one or more machine instances.
+When a new environment is created using `vagrant up` Vagrant loads a series of Vagrant files and merges and overrides the settings as it goes. The order being: the Vagrantfile packaged in the box, the Vagrantfile at `~/.vagrant.d/`, the Vagrantfile for the current environment (this is the one that we'll change most of the time), multi-machines overrides, and provider specific overrides.
+Vagrant boxes are installed to `~/.vagrant.d/boxes/` while environments are created at each provider's own default folder.
 Vagrant then acts as a wrapper to the different virtualization software simplifying the whole process. For example, when `vagrant up` is executed it downloads a VM image, unpacks it, starts the VM, installs and configures software packages, and sets up the network and shared folders.
 This means that with a Vagrantfile and the corresponding provisioning scripts it becomes possible to define a whole development environment consisting of one or more machines. With the advantage that the whole configuration can be easily shared and put under version control.
 
@@ -81,6 +83,8 @@ This section characterizes a typical Vagrant workflow.
 # select a box
 # it can be a box available locally, eg: file:///$HOME/vagrant_boxes/debian_jessie.box
 # or it can be a box made available at Hashicorp's Atlas, eg: ubuntu/trusty64
+# FYI ubuntu/trusty64 comes with VirtualBox guest tools installed,
+# while debian/jessie64 instead uses rsync (which is just a one-time one-way sync)
 boxname="ubuntu/trusty64"
 
 # check version
@@ -98,8 +102,13 @@ vagrant up --provider $provider
 # connect to the development environment
 vagrant ssh
 
-# get the status of existing environments
+# get the status of existing environments for the local Vagrantfile
 vagrant status
+
+# get the status for all environments for all Vagrantfiles
+# to make sure results are accurate add the --prune flag
+# however it will take a lot! longer to show results
+vagrant global-status
 
 # show existing network port mappings
 vagrant port
@@ -110,7 +119,7 @@ vagrant suspend
 # resume a previously suspended environment
 vagrant resume
 
-# delete the running development environment
+# delete the running development environment (use -f for no confirmation)
 vagrant destroy
 
 # get a list of available boxes
@@ -150,7 +159,7 @@ vagrant snapshot delete $snap_name
 
 ## Your own environment
 
-This section details how to add a local Vagrant box and set up a development environment.
+This section details how to add a local Vagrant box and set up a development environment. It goes through the most commonly used Vagrantfile settings.
 
 Add a local Vagrant box to the pool of available boxes:
 ````bash
@@ -179,7 +188,11 @@ Vagrant also supports synced folders via different implementations: NFS (Linux o
 Configure a new environment, that uses the new box, by editing the Vagrantfile as follows:
 ````ruby
 # select our box
-config.vm.box = "alexconst/debian/jessie64/20160115.0.1"
+config.vm.box = "alexconst/debian/jessie64/20160115.0.3"
+
+# set credentials (only required if Vagrant's insecure keypair wasn't added during box creation)
+config.ssh.username = "vagrant"
+config.ssh.password = "vagrant"
 
 # set hostname
 config.vm.hostname = "vagrant-devbox"
@@ -188,8 +201,11 @@ config.vm.hostname = "vagrant-devbox"
 # this text can be useful for detailing instructions how to access the development environment
 config.vm.post_up_message = "A Vagrant tutorial can be found at http://alexconst.github.io/"
 
-# configure shared folders (1st host, 2nd guest)
-config.vm.synced_folder "$HOME/share_vagrant", "/vagrant"
+# configure an additional shared folder
+# by default the project dir is already shared at /vagrant/
+host_folder = ENV['HOME'] + "/home/downloads/share_vagrant"
+guest_folder = "/vagrant_data"
+config.vm.synced_folder host_folder, guest_folder
 
 # configure the network: set up port forwarding for TCP
 # accessing port 8080 on the host will be forwarded to port 80 on the guest
@@ -215,16 +231,25 @@ vagrant ssh
 
 
 
-## AWS environment
 
-_TODO_ AWS
+## Blog in a box
 
+Set up a development environment ready for blogging by installing the GitHub Pages gem (which uses a specific version of Jekyll). This way we'll have an environment that matches the GitHub Pages website blogging backend and so we'll be able to preview our posts just like as they'll be shown on the GitHub website.
+
+Initially I planned to post the code here, but since it's well commented and quite similar to the code in the previous sections, there is no point as there isn't much to add. Just take a look at the code at github.
 
 
 
 ## Multi-machine environment
 
 _TODO_ detail multiple machines with ansible
+
+
+
+## AWS environment
+
+_TODO_ AWS
+
 
 
 
@@ -283,7 +308,7 @@ Related to synced folders:
     - `vagrant snapshot push` and `vagrant snapshot pop` for reverting undesired changes.
     - `vagrant ssh -c $your_cmd_here` will execute the provided command.
 
-- If no SSH keypair was added during the creation process of a Vagrant box, or there isn't a `vagrant` user, then it's necessary to configure the `config.ssh.user` and `config.ssh.password` settings with valid credentials.
+- If no SSH keypair was added during the creation process of a Vagrant box, or there isn't a `vagrant` user, then it's necessary to configure the `config.ssh.username` and `config.ssh.password` settings with valid credentials.
 
 - To connect to a development environment directly without going through Vagrant: `ssh -p $(vagrant port --guest 22) -l $box_username localhost`.
 
