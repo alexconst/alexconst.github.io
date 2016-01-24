@@ -204,8 +204,16 @@ config.vm.post_up_message = "A Vagrant tutorial can be found at http://alexconst
 # configure an additional shared folder
 # by default the project dir is already shared at /vagrant/
 host_folder = ENV['HOME'] + "/home/downloads/share_vagrant"
-guest_folder = "/vagrant_data"
+guest_folder = "/shared/"
 config.vm.synced_folder host_folder, guest_folder
+
+# configure a private network using DHCP
+# this will allows the VM to be accessible by the host and other guests within the same network
+config.vm.network "private_network", type: "dhcp"
+# alternatively it can also be configured to use a static IP
+#config.vm.network "private_network", ip: "192.168.22.50"
+# make sure the 192.168.22.x network is not being already used
+# and make sure you don't set at IP ending in ".1" since that can cause problems
 
 # configure the network: set up port forwarding for TCP
 # accessing port 8080 on the host will be forwarded to port 80 on the guest
@@ -234,15 +242,116 @@ vagrant ssh
 
 ## Blog in a box
 
-Set up a development environment ready for blogging by installing the GitHub Pages gem (which uses a specific version of Jekyll). This way we'll have an environment that matches the GitHub Pages website blogging backend and so we'll be able to preview our posts just like as they'll be shown on the GitHub website.
+Here we'll see how to set up a development environment ready for blogging by installing the GitHub Pages gem (which uses a specific version of Jekyll).
+This way we'll have an environment that matches the GitHub Pages website blogging backend and so we'll be able to preview our posts just as they'll be shown on the GitHub website.
 
-Initially I planned to post the code here, but since it's well commented and quite similar to the code in the previous sections, there is no point as there isn't much to add. Just take a look at the code at github.
+The code is well commented and in the general term quite similar to the code in the previous sections, so there isn't much to add here.
+
+
+The Vagrantfile:
+````ruby
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure(2) do |config|
+
+  # Choose a box with VBox guest tools already installed and a Ruby version
+  # compatible with GitHub Pages and Jekyll.
+  config.vm.box = "ubuntu/wily64"
+
+  # Set up hostname
+  config.vm.hostname = "jekyll"
+
+  # Message shown on vagrant up
+  config.vm.post_up_message = "
+Blog in a box! GitHub Pages (Jekyll powered) compatible environment.
+Simply cd to the blog directory and type:
+    pkill jekyll ; jekyll build  && jekyll serve
+
+A Vagrant tutorial can be found at http://alexconst.github.io/"
+
+
+  # Create a forwarded port mapping for Jekyll
+  config.vm.network "forwarded_port", guest: 4000, host: 4000
+
+  # Share an additional folder with the guest VM.
+  # This folder should have our blog files.
+  host_folder = ENV['HOME'] + "/home/downloads/share_vagrant"
+  guest_folder = "/shared/"
+  config.vm.synced_folder host_folder, guest_folder
+
+  # Fine tune the virtualbox VM
+  # We could get away with 256MB if Chef and Puppet agents weren't installed,
+  # which eat a total of 100 MiB of RAM (~ 50 MiB each).
+  # Set 2 virtual CPUs, each can use up to 50% of a single host CPU.
+  config.vm.provider "virtualbox" do |vb|
+    vb.customize [
+      "modifyvm", :id,
+      "--cpus", "2",
+      "--cpuexecutioncap", "50",
+      "--memory", "384",
+    ]
+  end
+
+  # fix annoyance, http://foo-o-rama.com/vagrant--stdin-is-not-a-tty--fix.html
+  config.vm.provision "fix-no-tty", type: "shell" do |s|
+    s.privileged = false
+    s.inline = "sudo sed -i '/tty/!s/mesg n/tty -s \\&\\& mesg n/' /root/.profile"
+  end
+  # fix annoyance, http://serverfault.com/questions/500764/dpkg-reconfigure-unable-to-re-open-stdin-no-file-or-directory
+  config.vm.provision "shell", inline: "echo 'export DEBIAN_FRONTEND=noninteractive' >> /root/.profile"
+  config.vm.provision "shell", inline: "for user in /home/*; do echo 'export DEBIAN_FRONTEND=noninteractive' >> $user/.profile; done"
+
+
+  # provisioning using shell scripts
+  config.vm.provision "shell", path: "scripts/jekyll.sh"
+
+end
+````
+
+And the provisioning script:
+````bash
+#!/bin/bash
+
+apt-get update
+# install htop because we can
+apt-get install -y htop
+# dependencies for github-pages
+apt-get install -y ruby-dev bundler zlib1g-dev ruby-execjs --no-install-recommends
+# dependencies for the pygments syntax highlighter
+apt-get install -y python-pygments
+# There is a bug which forces us to explicitly install activesupport, which
+# would otherwise be done by the github-pages gem.
+# https://github.com/github/pages-gem/issues/181
+gem install activesupport
+gem install github-pages
+apt-get clean
+````
 
 
 
-## Multi-machine environment
+To get jekyll running:
+````bash
+# deploy and connect to the environment
+vagrant up
+vagrant ssh
 
-_TODO_ detail multiple machines with ansible
+# if you don't have a site yet:
+cd /shared/
+jekyll new myblog
+# if you already have one then:
+cd $to_directory_with_your_blog
+
+# start jekyll webserver
+pkill jekyll ; jekyll build  && jekyll serve
+````
+
+
+
+
+
+
+
 
 
 
@@ -260,7 +369,7 @@ _TODO_ AWS
 This tutorial covers most of what there is to know about Vagrant and its workflow. However, there are some other features which were not discussed but are worthwhile to be aware of. These are:
 
 - Box catalogs
-Hashicorp provides a public repository for their own boxes, as well as third party boxes. For private boxes you can either subscribe to Hashicorp's Atlas service, or roll up your sleeves and set up your own box repository[^owncatalog].
+Hashicorp provides a public repository for their own boxes[^hashi_atlas], as well as third party boxes. For private boxes you can either subscribe to Hashicorp's Atlas service, or roll up your sleeves and set up your own box repository[^owncatalog].
 
 - Certificates
 To make the box download process secure use the appropriate Vagrantfile `config.vm` settings to specify which certificates to use and which checksums to perform.
@@ -269,17 +378,20 @@ To make the box download process secure use the appropriate Vagrantfile `config.
 Vagrant, by means of the Hashicorp Atlas website, makes possible to share a development environment to anyone on the internet.
 
 - Private and public networks
-With the `config.vm.network` it is possible to define private and *as mentioned in the manual* less private networks (which will likely be replaced by bridged networks in the future).
+With the `config.vm.network` it is possible to define private and *as mentioned in the manual* less private networks (which will likely be replaced by bridged networks in the future). While private networks were covered, public networks were not.
 
 - Provider specific settings
-Vagrant allows configuring additional provider specific settings as well as overriding existing settings using the `config.vm.provider` option[^config_vm_provider]. These vary according to the provider but can include options for: choosing between headless/GUI mode, using linked clones, customizing the virtual hardware devices, set limits on processing power used, networking, etc.
+Vagrant allows configuring additional provider specific settings as well as overriding existing settings using the `config.vm.provider` option[^config_vm_provider]. These vary according to the provider but can include options for: choosing between headless/GUI mode, using linked clones, customizing the virtual hardware devices, set limits on processing power used, networking, etc. Some of VirtualBox specific settings[^vbox_specific] are used in the Vagrantfile for the GitHub Pages environment.
 
 - SSH settings
-On the scenario described in this tutorial only the SSH credentials needed to be provided. But Vagrant allows configuring several other SSH related settings, such as: guest domain/IP, guest port, private key, agent forward, X11 forward, environment forward, pty, shell and sudo settings[^ssh_settings].
+On the scenario described in this tutorial only the SSH credentials needed to be provided. But Vagrant allows configuring several other SSH related settings, such as: guest domain/IP, guest port, private key, agent forward[^agent_harmful], X11 forward, environment forward, pty, shell and sudo settings[^ssh_settings].
 
+[^hashi_atlas]: <https://atlas.hashicorp.com/boxes/search>
 [^owncatalog]: <https://github.com/hollodotme/Helpers/blob/master/Tutorials/vagrant/self-hosted-vagrant-boxes-with-versioning.md>
 [^config_vm_provider]: <https://www.vagrantup.com/docs/providers/configuration.html>
 [^ssh_settings]: <https://www.vagrantup.com/docs/vagrantfile/ssh_settings.html>
+[^vbox_specific]: <https://www.virtualbox.org/manual/ch08.html#vboxmanage-modifyvm>
+[^agent_harmful]: Do not use agent forward, instead use proxy command. <https://heipei.github.io/2015/02/26/SSH-Agent-Forwarding-considered-harmful/>
 
 
 # Known issues
@@ -363,6 +475,21 @@ SOLUTION 2: add the following lines before running other provisioners that use a
 config.vm.provision "shell", inline: "echo 'export DEBIAN_FRONTEND=noninteractive' >> /root/.profile"
 config.vm.provision "shell", inline: "for user in /home/*; do echo 'export DEBIAN_FRONTEND=noninteractive' >> $user/.profile; done"
 ````
+
+- unable to access the guest directly via SSH when using a private network
+NOTE: failure to connect to the guest via SSH may be due to sshd configuration issues. If you can ping the machine and telnet to the SSH port, then the private network is working. If still not convinced yet, then install lighttpd and access port 80 from the host. Make sure you're using the correct IP and port. Example:
+````bash
+ssh vagrant@$private_network_ip
+# example:
+ssh vagrant@192.168.22.50
+````
+If `/etc/ssh/sshd_config` has `PasswordAuthentication no` then you'll have to use a command similar to this one:
+````bash
+ssh -i ./.vagrant/machines/default/virtualbox/private_key vagrant@192.168.22.50
+````
+
+
+
 
 
 # Footnotes
