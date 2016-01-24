@@ -282,14 +282,16 @@ A Vagrant tutorial can be found at http://alexconst.github.io/"
 
   # Fine tune the virtualbox VM
   # We could get away with 256MB if Chef and Puppet agents weren't installed,
-  # which eat a total of 100 MiB of RAM (~ 50 MiB each).
+  # which eat a total of 100 MiB of RAM (~ 50 MiB each). Update: no we wouldn't
+  # because 384 MB may not be enough for building the GitHub pages gem. It may
+  # complain with "ERROR: Failed to build gem native extension. ... Cannot allocate memory"
   # Set 2 virtual CPUs, each can use up to 50% of a single host CPU.
   config.vm.provider "virtualbox" do |vb|
     vb.customize [
       "modifyvm", :id,
       "--cpus", "2",
       "--cpuexecutioncap", "50",
-      "--memory", "384",
+      "--memory", "512",
     ]
   end
 
