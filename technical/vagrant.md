@@ -24,7 +24,7 @@ The Vagrant boxes are created using Packer. And these consist on a tar file whic
 The configuration of a development environment is done via a Vagrantfile. It includes settings for box selection, network port forwarding, shared folders, credentials, provisioning scripts, and other settings; for one or more machine instances.
 When a new environment is created using `vagrant up` Vagrant loads a series of Vagrant files and merges and overrides the settings as it goes. The order being: the Vagrantfile packaged in the box, the Vagrantfile at `~/.vagrant.d/`, the Vagrantfile for the current environment (this is the one that we'll change most of the time), multi-machines overrides, and provider specific overrides.
 Vagrant boxes are installed to `~/.vagrant.d/boxes/` while environments are created at each provider's own default folder.
-Vagrant then acts as a wrapper to the different virtualization software simplifying the whole process. For example, when `vagrant up` is executed it downloads a VM image, unpacks it, starts the VM, installs and configures software packages, and sets up the network and shared folders.
+Vagrant then acts as a wrapper to the different virtualization software simplifying the whole process. For example, when `vagrant up` is executed it (if required) downloads a VM image, unpacks it, starts the VM, installs and configures software packages, and sets up the network and shared folders.
 This means that with a Vagrantfile and the corresponding provisioning scripts it becomes possible to define a whole development environment consisting of one or more machines. With the advantage that the whole configuration can be easily shared and put under version control.
 
 **Security concerns**
@@ -77,18 +77,21 @@ Note that the installed plugins will be older than the lastest versions from git
 
 ## Basics
 
-This section characterizes a typical Vagrant workflow.
+This section is a bit of a cheat sheet and characterizes a typical Vagrant workflow.
 
 ````bash
-# select a box
-# it can be a box available locally, eg: file:///$HOME/vagrant_boxes/debian_jessie.box
-# or it can be a box made available at Hashicorp's Atlas, eg: ubuntu/trusty64
-# FYI ubuntu/trusty64 comes with VirtualBox guest tools installed,
-# while debian/jessie64 instead uses rsync (which is just a one-time one-way sync)
-boxname="ubuntu/trusty64"
-
 # check version
 vagrant version
+
+# select a box from Hashicorp's Atlas, eg: ubuntu/wily64
+# FYI ubuntu/wily64 comes with VirtualBox guest tools installed,
+# while debian/jessie64 instead uses rsync (which is just a one-time one-way sync)
+boxname="ubuntu/wily64"
+
+# if the box is not present in your box pool, then add it
+vagrant box add $boxname
+# check that it has been added
+vagrant box list
 
 # generate a Vagrantfile set to use given box
 vagrant init $boxname
@@ -121,6 +124,9 @@ vagrant resume
 
 # delete the running development environment (use -f for no confirmation)
 vagrant destroy
+
+# remove a box
+vagrant box remove $boxname
 
 # get a list of available boxes
 vagrant box list
@@ -159,20 +165,17 @@ vagrant snapshot delete $snap_name
 
 ## Your own environment
 
-This section details how to add a local Vagrant box and set up a development environment. It goes through the most commonly used Vagrantfile settings.
+This section details how to add a local Vagrant box and set up a development environment using a Vagrantfile. It goes through the most commonly used Vagrantfile settings.
 
 Add a local Vagrant box to the pool of available boxes:
 ````bash
 # select the box
 boxfile="debian-802-jessie-amd64_jessie-vboxiso.box"
-boxname="alexconst/debian/jessie64/20160115.0.1"
+boxname="alexconst/debian/jessie64/20160115.0.3"
 # add the box
 vagrant box add  "${boxfile}"  --name "${boxname}"
 # check that it has been added
 vagrant box list
-
-# FYI, to remove a box
-vagrant box remove $boxname
 ````
 Note that there is a `--box-version` option to the `box add` command but that is only for remote clouds (eg: Hashicorp Atlas), so we workaround that limitation by adding the version tag to the box name. This "workaround" does give us visual identification, but doesn't really provide the version constraint features of that command option.
 
@@ -210,10 +213,12 @@ config.vm.synced_folder host_folder, guest_folder
 # configure a private network using DHCP
 # this will allows the VM to be accessible by the host and other guests within the same network
 config.vm.network "private_network", type: "dhcp"
-# alternatively it can also be configured to use a static IP
+
+# alternatively it can also be configured to use a static IP, for example:
 #config.vm.network "private_network", ip: "192.168.22.50"
-# make sure the 192.168.22.x network is not being already used
-# and make sure you don't set at IP ending in ".1" since that can cause problems
+# but make sure the 192.168.22.x network is not being already used (if so choose
+# another network) and also make sure you don't set at IP ending in ".1" since
+# that can cause problems
 
 # configure the network: set up port forwarding for TCP
 # accessing port 8080 on the host will be forwarded to port 80 on the guest
@@ -355,12 +360,9 @@ pkill jekyll ; jekyll build  && jekyll serve
 
 
 
-
-
 ## AWS environment
 
 _TODO_ AWS
-
 
 
 
@@ -379,7 +381,7 @@ To make the box download process secure use the appropriate Vagrantfile `config.
 - Share and connect
 Vagrant, by means of the Hashicorp Atlas website, makes possible to share a development environment to anyone on the internet.
 
-- Private and public networks
+- Public networks
 With the `config.vm.network` it is possible to define private and *as mentioned in the manual* less private networks (which will likely be replaced by bridged networks in the future). While private networks were covered, public networks were not.
 
 - Provider specific settings
@@ -387,6 +389,9 @@ Vagrant allows configuring additional provider specific settings as well as over
 
 - SSH settings
 On the scenario described in this tutorial only the SSH credentials needed to be provided. But Vagrant allows configuring several other SSH related settings, such as: guest domain/IP, guest port, private key, agent forward[^agent_harmful], X11 forward, environment forward, pty, shell and sudo settings[^ssh_settings].
+
+- Multi-machine environments
+This will be a subject for another tutorial where Ansible will be used.
 
 [^hashi_atlas]: <https://atlas.hashicorp.com/boxes/search>
 [^owncatalog]: <https://github.com/hollodotme/Helpers/blob/master/Tutorials/vagrant/self-hosted-vagrant-boxes-with-versioning.md>
