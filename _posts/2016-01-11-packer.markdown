@@ -1,9 +1,9 @@
 ---
 layout: post
-title:  "Packer – a hands-on tutorial"
+title:  "Packer – automating virtual machine image creation"
 date:   2016-01-11 22:34:03
-categories: blog devops
-tags:       packer
+categories: tutorial
+tags:       devops packer
 
 ---
 
