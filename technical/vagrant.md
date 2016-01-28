@@ -1,11 +1,11 @@
-% Vagrant -- an in-depth guide
+% Vagrant -- automating environment deployment
 % Alexandre Constantino
 % 2016-01-28
 
 # About
 
-This is a guide on Vagrant which covers a lot of what there is to known about it. If you've found other resources to be confusing, not going through all the steps, or leaving out information; then you may find this tutorial helpful.
-In any case, if you just need a cheat sheet or a tl,dr version then jump into the [Basics section](#basics).
+This is a guide on Vagrant which covers most of what there is to known about it. If you've found other resources to be confusing, not going through all the steps, or leaving out information; then you may find this tutorial helpful.
+In any case, if you just need a cheat sheet then jump into the [Basics section](#basics).
 The only major feature left out from this tutorial was Multi-Machines, which will be approached in another tutorial where Ansible will also be used.
 
 
@@ -201,7 +201,7 @@ Our use case matches the default scenario where the guest is Linux and communica
 Vagrant also supports synced folders via different implementations: NFS (Linux only), Samba (Windows only), rsync, and the provider's own mechanism (eg: VirtualBox shared folders). However these are not perfect; do check the [Known issues](#known-issues) section for more information.
 Regarding rsync, it does a one-time one-way (from host to guest) folder synchronization on `vagrant up`, `vagrant reload` and `vagrant rsync`. There is also `vagrant rsync-auto` which runs in the foreground listening to events on the local filesystem before it does a folder sync; however this command has a few caveats.
 
-Configure a new environment, that uses the new box, by editing the Vagrantfile as follows:
+Then to configure a new environment, that uses the new box, edit the Vagrantfile as follows:
 ````ruby
 # select our box
 config.vm.box = "alexconst/debian/jessie64/20160115.0.3"
@@ -219,7 +219,7 @@ config.vm.post_up_message = "A Vagrant tutorial can be found at http://alexconst
 
 # configure an additional shared folder
 # by default the project dir is already shared at /vagrant/
-host_folder = ENV['HOME'] + "/home/downloads/share_vagrant"
+host_folder = ENV['HOME'] + "/shared_vagrant"
 guest_folder = "/shared/"
 config.vm.synced_folder host_folder, guest_folder
 
