@@ -12,7 +12,7 @@ TODO
 Here we create the same GitHub Pages & Jekyll environment. But instead of using shell scripts for provisioning we'll use Ansible.
 
 Install Ansible on the host[^install_ansible]:
-````bash
+```bash
 # install Ansible from source
 cd /usr/local/src
 git clone git://github.com/ansible/ansible.git --recursive
@@ -37,20 +37,20 @@ ansible all -m ping --ask-pass
 cd /usr/local/src/ansible
 git pull --rebase
 git submodule update --init --recursive
-````
+```
 
 [^install_ansible]: <http://docs.ansible.com/ansible/intro_installation.html#installing-the-control-machine>
 
 
 Set the provisioning to be done using Ansible:
-````ruby
+```ruby
 config.vm.provision "ansible" do |ansible|
   ansible.playbook = "ansible/playbook.yml"
 end
-````
+```
 
 Create the `ansible/playbook.yml` playbook:
-````yaml
+```yaml
 ---
 - hosts: all
   become: yes
@@ -74,7 +74,7 @@ Create the `ansible/playbook.yml` playbook:
       with_items:
         - activesupport
         - github-pages
-````
+```
 
 
 
