@@ -1,4 +1,4 @@
-% Packer -- a hands-on tutorial
+% Packer -- automating virtual machine image creation
 % Alexandre Constantino
 % 2016-01-08
 
