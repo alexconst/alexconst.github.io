@@ -1,3 +1,14 @@
+% Vagrant -- an in-depth guide
+% Alexandre Constantino
+% 2016-01-28
+
+# About
+
+This is a guide on Vagrant which covers a lot of what there is to known about it. If you've found other resources to be confusing, not going through all the steps, or leaving out information; then you may find this tutorial helpful.
+In any case, if you just need a cheat sheet or a tl,dr version then jump into the [Basics section](#basics).
+The only major feature left out from this tutorial was Multi-Machines, which will be approached in another tutorial where Ansible will also be used.
+
+
 # What is Vagrant
 
 Vagrant is a tool for deploying software environments in a configurable and reproducible form, from a single source configuration file. Whereas a software environment consists of one or more virtual machine or container instances; and most likely with network port forwarding and folder shares configured as well.
@@ -44,7 +55,7 @@ Source code can be found at <https://github.com/mitchellh/vagrant>.
 Vagrant ships with provider support for VirtualBox, Docker and HyperV.
 Support for other providers can be done via plugins:
 - VMware Workstation/Fusion: developed and supported by the authors of Vagrant and it costs $79. <https://www.vagrantup.com/vmware>
-- VMware Workstation/Fusion: a free plugin which according to the author is not mature enough to be called alpha. <https://github.com/orishavit/vagrant-vmware-free>
+- VMware Workstation/Fusion: a free plugin which according to the author is not mature enough to be called alpha. And apparently no longer works[^broken_vmware_free]. <https://github.com/orishavit/vagrant-vmware-free>
 - KVM and QEMU: <https://github.com/pradels/vagrant-libvirt>
 - AWS cloud: <https://github.com/mitchellh/vagrant-aws>
 - Google cloud: <https://github.com/mitchellh/vagrant-google>
@@ -55,6 +66,8 @@ Support for other providers can be done via plugins:
 Other interesting plugins:
 - vbguest: automatically keep the VirtualBox guest tools updated <https://github.com/dotless-de/vagrant-vbguest/>
 - mutate: convert boxes to work with different providers <https://github.com/sciurus/vagrant-mutate>
+
+[^broken_vmware_free]: <https://github.com/mitchellh/vagrant/issues/6935>
 
 List of plugins: <http://vagrant-lists.github.io/>
 
@@ -67,7 +80,6 @@ vagrant plugin list
 vagrant plugin update
 ````
 Plugins are downloaded from the ruby gems repository and are installed to `$HOME/.vagrant.d/gems/gems/`.
-Note that the installed plugins will be older than the lastest versions from github. However installing the plugins directly from github is more troublesome and is out of scope in this tutorial.
 
 
 
@@ -85,7 +97,7 @@ vagrant version
 
 # select a box from Hashicorp's Atlas, eg: ubuntu/wily64
 # FYI ubuntu/wily64 comes with VirtualBox guest tools installed,
-# while debian/jessie64 instead uses rsync (which is just a one-time one-way sync)
+# while debian/jessie64 instead uses rsync (which doesn't work so well)
 boxname="ubuntu/wily64"
 
 # if the box is not present in your box pool, then add it
@@ -165,7 +177,7 @@ vagrant snapshot delete $snap_name
 
 ## Your own environment
 
-This section details how to add a local Vagrant box and set up a development environment using a Vagrantfile. It goes through the most commonly used Vagrantfile settings.
+This section details how to add a local Vagrant box (that was created with Packer) and how to set up a development environment using a Vagrantfile. It goes through the most commonly used Vagrantfile settings.
 
 Add a local Vagrant box to the pool of available boxes:
 ````bash
@@ -186,7 +198,8 @@ vagrant init
 ````
 
 Our use case matches the default scenario where the guest is Linux and communication is done via `ssh`. But Vagrant also supports Windows guest where communication is done via `winrm`.
-Vagrant also supports synced folders via different implementations: NFS (Linux only), Samba (Windows only), Rsync, and the provider's own mechanism (eg: VirtualBox shared folders). However these are not perfect; do check the [Known issues](#known-issues) section for more information.
+Vagrant also supports synced folders via different implementations: NFS (Linux only), Samba (Windows only), rsync, and the provider's own mechanism (eg: VirtualBox shared folders). However these are not perfect; do check the [Known issues](#known-issues) section for more information.
+Regarding rsync, it does a one-time one-way (from host to guest) folder synchronization on `vagrant up`, `vagrant reload` and `vagrant rsync`. There is also `vagrant rsync-auto` which runs in the foreground listening to events on the local filesystem before it does a folder sync; however this command has a few caveats.
 
 Configure a new environment, that uses the new box, by editing the Vagrantfile as follows:
 ````ruby
@@ -362,7 +375,62 @@ pkill jekyll ; jekyll build  && jekyll serve
 
 ## AWS environment
 
-_TODO_ AWS
+The AWS provider is supported via the `vagrant-aws` plugin, which supports several AWS settings, so you may want to take a look at the README for any relevant settings that you may need. However there are two caveats to it:
+1) synced folders are supported via rsync (subject to its limitations).
+2) AWS credentials files are not supported. I have submitted a PR for the `vagrant-aws` plugin that [adds support for AWS config and credential files](https://github.com/mitchellh/vagrant-aws/pull/441), but until it gets (or if it gets) approved we're stuck either using environment variables or leaking credentials to the Vagrantfile.[^aws_plugin_wait]
+This section shows a simple use case of the plugin.
+
+[^aws_plugin_wait]: If you really need to have support for AWS credential files and can't wait for the PR to get merged and a new release come out, then take a look at the Vagrantfile for the AWS recipe at my github.
+
+
+AWS needs a dummy box so let us start by adding it:
+```bash
+# install the dummy AWS box
+vagrant box add dummy https://github.com/mitchellh/vagrant-aws/raw/master/dummy.box
+# create Vagrantfile
+vagrant init dummy
+```
+
+Then adapt the following Vagrantfile with your credentials:
+```ruby
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure(2) do |config|
+  # AWS dummy box
+  config.vm.box = "dummy"
+
+  config.vm.provider :aws do |aws, override|
+    # configure your credentials and select your region
+    aws.access_key_id = "YOUR KEY"
+    aws.secret_access_key = "YOUR SECRET KEY"
+    # the token is only needed if you're using one
+    #aws.session_token = "YOUR SESSION TOKEN"
+    aws.region = "YOUR REGION"
+
+    aws.ami = "ami-e31a6594"
+    # this username must exist in the specified aws.ami
+    override.ssh.username = "admin"
+    aws.instance_type = "t2.micro"
+    # if your default SG does not allow for SSH then you need to specify it here
+    #aws.security_groups = ['YOUR SG ALLOWING SSH']
+
+    # set the keypair name that will be used (name as shown in AWS)
+    aws.keypair_name = "KEYPAIR NAME"
+    # the credential file should be the one for the aws.keypair_name
+    override.ssh.private_key_path = ENV['HOME'] + "/.ssh/" + "YOUR PRIVATE KEYFILE"
+  end
+
+end
+```
+
+Then to start the development environment and connect to it:
+```bash
+vagrant up --provider=aws
+vagrant ssh
+```
+
+
 
 
 
@@ -385,7 +453,7 @@ Vagrant, by means of the Hashicorp Atlas website, makes possible to share a deve
 With the `config.vm.network` it is possible to define private and *as mentioned in the manual* less private networks (which will likely be replaced by bridged networks in the future). While private networks were covered, public networks were not.
 
 - Provider specific settings
-Vagrant allows configuring additional provider specific settings as well as overriding existing settings using the `config.vm.provider` option[^config_vm_provider]. These vary according to the provider but can include options for: choosing between headless/GUI mode, using linked clones, customizing the virtual hardware devices, set limits on processing power used, networking, etc. Some of VirtualBox specific settings[^vbox_specific] are used in the Vagrantfile for the GitHub Pages environment.
+Vagrant allows configuring additional provider specific settings as well as overriding existing settings using the `config.vm.provider` option[^config_vm_provider]. These vary according to the provider but can include options for: choosing between headless/GUI mode, using linked clones, customizing the virtual hardware devices, set limits on processing power used, networking, etc. Some of VirtualBox specific settings[^vbox_specific] were used in the Vagrantfile for the GitHub Pages environment, but there are many more.
 
 - SSH settings
 On the scenario described in this tutorial only the SSH credentials needed to be provided. But Vagrant allows configuring several other SSH related settings, such as: guest domain/IP, guest port, private key, agent forward[^agent_harmful], X11 forward, environment forward, pty, shell and sudo settings[^ssh_settings].
@@ -437,6 +505,12 @@ Related to synced folders:
 export VAGRANT_LOG="debug"
 ````
 
+- To run the latest version of Vagrant or any of its plugins from GitHub's master branch (which BTW is not recommended), then clone the repo and then use `bundle` to run vagrant. Check the `vagrant_dev-wily64-atlas` recipe for more details, but it would go something like this:
+```bash
+git clone git@github.com:alexconst/vagrant-aws.git
+cd vagrant-aws
+bundle exec vagrant version
+```
 
 
 
@@ -494,6 +568,8 @@ If `/etc/ssh/sshd_config` has `PasswordAuthentication no` then you'll have to us
 ````bash
 ssh -i ./.vagrant/machines/default/virtualbox/private_key vagrant@192.168.22.50
 ````
+
+
 
 
 
