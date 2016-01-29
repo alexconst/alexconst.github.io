@@ -21,7 +21,7 @@ Supported providers (ie: virtualization platforms) include: VirtualBox, VMWare, 
 The provisioning (ie: installation and configuration of software into the instantiated VM, or container in the case of Docker) can be done using one or more of the supported configuration management tools: shell scripts, Ansible, CFEngine, Chef, Docker, Puppet, Salt.
 The Vagrant VM images are commonly referred as *Vagrant boxes* and they are provider specific. While an instantiated VM is referred as *development environment*.
 
-**Vagrant recipes used in this tutorial: **
+**Vagrant recipes used in this tutorial:**
 <https://github.com/alexconst/vagrant_recipes>
 
 
