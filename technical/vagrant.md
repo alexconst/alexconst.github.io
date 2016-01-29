@@ -1,6 +1,9 @@
-% Vagrant -- automating environment deployment
-% Alexandre Constantino
-% 2016-01-28
+---
+title:  'Vagrant – automating environment deployment'
+author: 'Alexandre Constantino'
+date:   '2016-01-28'
+---
+
 
 # About
 
