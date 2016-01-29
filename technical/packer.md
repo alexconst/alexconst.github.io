@@ -1,6 +1,8 @@
-% Packer -- automating virtual machine image creation
-% Alexandre Constantino
-% 2016-01-08
+---
+title:  'Packer – automating virtual machine image creation'
+author: 'Alexandre Constantino'
+date:   '2016-01-08'
+---
 
 
 
