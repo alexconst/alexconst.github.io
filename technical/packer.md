@@ -17,11 +17,11 @@ The outputs produced by Packer (eg: AWS AMI IDs; VMware image files) are called 
 
 [//]: # (Apparently Redhat's kickstart format is [not expressive enough](https://help.ubuntu.com/community/KickstartCompatibility#Integration_with_Preseed) to enable a full installation. )
 
-**Download Packer: **
+**Download Packer:**
 <https://www.packer.io/downloads.html>
 <https://github.com/mitchellh/packer>
 
-**Packer recipe used for this tutorial: **
+**Packer recipe used for this tutorial:**
 <https://github.com/alexconst/packer_recipes/tree/master/debian-8-jessie>
 
 
@@ -435,7 +435,7 @@ tmp=`eval echo "builds.ignore/${tmp}_${packer_builder_selected}"`
 mv $PACKER_LOG_PATH  $tmp/
 ```
 
-**Launching the QEMU image: **
+**Launching the QEMU image:**
 
 While the VirtualBox and VMware are simple to run, the QEMU image is less so.
 So to run the created image in QEMU run the qemu command returned by:
@@ -458,7 +458,7 @@ ssh -p $port $ssh_user@localhost
 # and ssh_user is the user you defined in the template
 ````
 
-**Logging into an AWS instance: **
+**Logging into an AWS instance:**
 
 ````bash
 aws_credentials="..."   # should be your .pem file
