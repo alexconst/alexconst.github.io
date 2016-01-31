@@ -1,7 +1,10 @@
 ---
+layout: post
 title:  'Vagrant – automating environment deployment'
 author: 'Alexandre Constantino'
-date:   '2016-01-28'
+date:   2016-01-28
+categories: devops
+tags:       tutorial vagrant
 ---
 
 
@@ -34,7 +37,7 @@ Vagrant acts as a wrapper around different providers (eg: VirtualBox) and provis
 - uniform: it works the same way across multiple cloud providers and virtualization platforms (assuming Vagrant boxes are available for those providers); and
 - reproducible: you always get the same development environment when you start a new development environment.
 
-The Vagrant boxes are created using Packer. And these consist on a tar file which include the virtualization software VM files (eg: .ovf and .vmdk) and a couple of Vagrant specific files.
+The Vagrant boxes are created using [Packer](packer.md). And these consist on a tar file which include the virtualization software VM files (eg: .ovf and .vmdk) and a couple of Vagrant specific files.
 The configuration of a development environment is done via a Vagrantfile. It includes settings for box selection, network port forwarding, shared folders, credentials, provisioning scripts, and other settings; for one or more machine instances.
 When a new environment is created using `vagrant up` Vagrant loads a series of Vagrant files and merges and overrides the settings as it goes. The order being: the Vagrantfile packaged in the box, the Vagrantfile at `~/.vagrant.d/`, the Vagrantfile for the current environment (this is the one that we'll change most of the time), multi-machines overrides, and provider specific overrides.
 Vagrant boxes are installed to `~/.vagrant.d/boxes/` while environments are created at each provider's own default folder.
@@ -180,7 +183,7 @@ vagrant snapshot delete $snap_name
 
 ## Your own environment
 
-This section details how to add a local Vagrant box (that was created with Packer) and how to set up a development environment using a Vagrantfile. It goes through the most commonly used Vagrantfile settings.
+This section details how to add a local Vagrant box (that was created with [Packer](packer.md)) and how to set up a development environment using a Vagrantfile. It goes through the most commonly used Vagrantfile settings.
 
 Add a local Vagrant box to the pool of available boxes:
 ````bash
