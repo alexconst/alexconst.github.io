@@ -1,9 +1,11 @@
 ---
+layout: post
 title:  'Packer – automating virtual machine image creation'
 author: 'Alexandre Constantino'
-date:   '2016-01-08'
+date:   2016-01-08
+categories: devops
+tags:       tutorial packer
 ---
-
 
 
 # What is Packer
@@ -11,7 +13,7 @@ date:   '2016-01-08'
 Packer is a tool for automating the creation of identical virtual machine images for multiple platforms from a single source configuration. Allowing for the image creation process to execute in parallel for multiple machine images.
 Supported platforms include: AWS EC2 AMI, DigitalOcean, Docker, Google Compute Engine, OpenStack, Parallels, QEMU, VirtualBox, VMware.
 And the provisioning (ie: installation and configuration of software into the machine image) can be done using one or more of the supported configuration management tools: shell scripts, Ansible, Chef, Puppet, Salt.
-After an image is created it's possible to run a post-processor to better suite the desired intent, for example vSphere (to upload an image to an endpoint) or Vagrant (to convert the image into a valid Vagrant box).
+After an image is created it's possible to run a post-processor to better suite the desired intent, for example vSphere (to upload an image to an endpoint) or [Vagrant](vagrant.md) (to convert the image into a valid Vagrant box).
 The advantage of using Packer is that it allows creating the same image for multiple platforms and also makes possible for problem resolution to be done at image creation. Another benefit is that after an image is created you can spin a fully configured machine in just a couple of minutes.
 The outputs produced by Packer (eg: AWS AMI IDs; VMware image files) are called artifacts.
 
@@ -365,7 +367,7 @@ To pass an environment variable to the provisioning scripts:
 
 
 ## Post-processors
-The most common use is the creation of a Vagrant box. But can also be used to upload an image to an endpoint.
+The most common use is the creation of a [Vagrant](vagrant.md) box. But can also be used to upload an image to an endpoint.
 ```json
 {
     "post-processors": [
