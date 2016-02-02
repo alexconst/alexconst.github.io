@@ -2,7 +2,7 @@
 layout: post
 title:  'Packer – automating virtual machine image creation'
 author: 'Alexandre Constantino'
-date:   2016-01-08
+date:   2016-01-11
 categories: devops
 tags:       tutorial packer
 ---
@@ -24,7 +24,7 @@ The outputs produced by Packer (eg: AWS AMI IDs; VMware image files) are called 
 <https://github.com/mitchellh/packer>
 
 **Packer recipe used for this tutorial:**
-<https://github.com/alexconst/packer_recipes/tree/master/debian-8-jessie>
+<https://github.com/alexconst/packer_recipes/tree/master/debian-8-jessie-amd64>
 
 
 # Understanding the magic
@@ -48,11 +48,13 @@ In terms of file structure typically there is an `http` folder with the preseed 
 │   └── preseed.cfg
 ├── packer_variables.sh
 └── scripts
-    ├── base.sh
-    ├── cleanup.sh
-    ├── cloud.sh
-    ├── virtualbox.sh
-    └── vmware.sh
+    ├── base.sh
+    ├── cleanup.sh
+    ├── cloud.sh
+    ├── motd.sh
+    ├── vagrant.sh
+    ├── virtualbox.sh
+    └── vmware.sh
 ```
 The `packer_variables.sh` was created to make the template a bit more flexible and cleaner. This way you can share and put the template under revision control without having to share your credentials (with the `packer_variables.sh` not being under revision control). As well as leaving all the required configuration (regarding credentials and OS installation image) to this single script, which is under 10 lines.
 
@@ -154,7 +156,7 @@ While the only mandatory section is the builders, the typical structure is as fo
     ]
 }
 ```
-The description and variables are self explanatory. The builders section specify the format and the instructions on how to build an image using the different virtualization tools (eg: QEMU) and cloud platforms (eg: AWS). The provisioners define the scripts and/or playbooks for configuring the machine (eg: installing and configuring a web server). And finally the post-processors section instructs on what should be done after the image has been produced (eg: create a Vagrant box).
+The description is self explanatory. The variables are where variables are declared and set. The builders section specify the format and the instructions on how to build an image using the different virtualization tools (eg: QEMU) and cloud platforms (eg: AWS). The provisioners define the scripts and/or playbooks for configuring the machine (eg: installing and configuring a web server). And finally the post-processors section instructs on what should be done after the image has been produced (eg: create a Vagrant box).
 
 Packer supports two types of variables: user variables and configuration template variables.
 ```text
@@ -251,7 +253,7 @@ The `outputs_dir` will be were outputs will be saved. The ".ignore" is just a pa
 The blocks above are common to the builders of local VMs (QEMU, VMware, VirtualBox).
 The `boot_command` relates to the Debian preseed file and it is what is typed by Packer when installing the guest OS. Using `root-login=false` enables the normal account to use sudo.
 The `http_directory` points to the directory with our preseed.cfg file.
-The `build_name` is actually a template function from Packer, despite its misleading name.[^docs_vagrant][^docs_templates]
+The `build_name` is actually a template function from Packer, despite its misleading name.[^docs_vagrant],[^docs_templates]
 
 [^docs_templates]: `build_name` is actually a template global function <https://www.packer.io/docs/templates/configuration-templates.html>
 [^docs_vagrant]: In the Vagrant post-processor there is the variable `{{.BuildName}}` <https://www.packer.io/docs/post-processors/vagrant.html>
@@ -341,6 +343,8 @@ The VM specific scripts (ie: virtualbox.sh and vmware.sh) make use of the `PACKE
             "execute_command": "echo '{{user `ssh_pass`}}' | {{.Vars}} sudo -E -S bash '{{.Path}}'",
             "scripts": [
                 "scripts/base.sh",
+                "scripts/vagrant.sh",
+                "scripts/motd.sh",
                 "scripts/virtualbox.sh",
                 "scripts/vmware.sh",
                 "scripts/cleanup.sh"
@@ -391,7 +395,7 @@ This will create a vagrant box `only` from the listed image, compress it using t
 
 # Provisioner scripts overview
 
-The provisioner shell scripts are well commented, so there isn't much of a point in detailing them here. Instead here is a general overview of them:
+The provisioner shell scripts are well commented, therefore they won't be detailed here, so instead here is a general overview:
 - The `base.sh` script refreshes the package listing, and tweaks GRUB and the SSH daemon configs for faster logins.
 - The `vmware.sh` and `virtualbox.sh` scripts are used for installing the VM tools. But note that since we're aiming for a minimal installation there is no X11, which means the corresponding modules for the VM tools will not be installed. These scripts would need to be adapted if a machine image with a desktop is desired (for example by installing KDE before installing the VM tools).
 - The `cleanup.sh` script cleans package downloads and listings, as well as DHCP leases and udev rules.
@@ -409,6 +413,10 @@ The provisioner shell scripts are well commented, so there isn't much of a point
 # Building an image
 
 ```bash
+# grab your own copy of the recipes
+git clone https://github.com/alexconst/packer_recipes
+cd packer_recipes/debian-8-jessie-amd64
+
 # Source variables for ISO, checksum, and SSH credentials
 source packer_variables.sh
 # Because variables make things reusable:
