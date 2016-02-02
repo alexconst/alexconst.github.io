@@ -15,5 +15,5 @@ redcarpet:
     extensions: [autolink, footnotes, with_toc_data]
 highlighter: pygments
 
-permalink: /:categories/:year/:month/:day/:title/
+permalink: /:year/:month/:day/:title/
 

@@ -1,12 +1,11 @@
 ---
 layout: post
-title:  "Vagrant – automating environment deployment"
-date:   2016-01-28 20:00:00
-categories: tutorial
-tags:       devops vagrant
-
+title: 'Vagrant – automating environment deployment'
+date: '2016-01-28'
+categories: devops
+tags: tutorial vagrant
+author: Alexandre Constantino
 ---
-
 
 # About
 
@@ -62,9 +61,9 @@ and provisioning tools (eg: Ansible), making the whole process:
 -   reproducible: you always get the same development environment when
     you start a new development environment.
 
-The Vagrant boxes are created using Packer. And these consist on a tar
-file which include the virtualization software VM files (eg: .ovf and
-.vmdk) and a couple of Vagrant specific files.  
+The Vagrant boxes are created using [Packer](2016/01/08/packer). And these
+consist on a tar file which include the virtualization software VM files
+(eg: .ovf and .vmdk) and a couple of Vagrant specific files.  
 The configuration of a development environment is done via a
 Vagrantfile. It includes settings for box selection, network port
 forwarding, shared folders, credentials, provisioning scripts, and other
@@ -235,8 +234,8 @@ vagrant snapshot delete $snap_name
 ## Your own environment
 
 This section details how to add a local Vagrant box (that was created
-with Packer) and how to set up a development environment using a
-Vagrantfile. It goes through the most commonly used Vagrantfile
+with [Packer](2016/01/08/packer)) and how to set up a development environment
+using a Vagrantfile. It goes through the most commonly used Vagrantfile
 settings.
 
 Add a local Vagrant box to the pool of available boxes:
