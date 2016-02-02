@@ -253,7 +253,7 @@ The `outputs_dir` will be were outputs will be saved. The ".ignore" is just a pa
 The blocks above are common to the builders of local VMs (QEMU, VMware, VirtualBox).
 The `boot_command` relates to the Debian preseed file and it is what is typed by Packer when installing the guest OS. Using `root-login=false` enables the normal account to use sudo.
 The `http_directory` points to the directory with our preseed.cfg file.
-The `build_name` is actually a template function from Packer, despite its misleading name.[^docs_vagrant],[^docs_templates]
+The `build_name` is actually a template function from Packer, despite its misleading name.[^docs_vagrant] [^docs_templates]
 
 [^docs_templates]: `build_name` is actually a template global function <https://www.packer.io/docs/templates/configuration-templates.html>
 [^docs_vagrant]: In the Vagrant post-processor there is the variable `{{.BuildName}}` <https://www.packer.io/docs/post-processors/vagrant.html>
