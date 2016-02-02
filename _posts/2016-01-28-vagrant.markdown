@@ -33,12 +33,12 @@ thus eliminating the problems caused by differences in system
 configuration both across teams and infrastructure.  
 With a single command, `vagrant up`, it becomes possible to deploy a
 whole environment in just a few minutes.  
-Supported providers (ie: virtualization platforms) include: VirtualBox,
-VMWare, HyperV, Docker, KVM, AWS and others.  
+Supported providers (ie: virtualization and containerization platforms)
+include: VirtualBox, VMWare, HyperV, Docker, KVM, AWS and others.  
 The provisioning (ie: installation and configuration of software into
-the instantiated VM, or container in the case of Docker) can be done
-using one or more of the supported configuration management tools: shell
-scripts, Ansible, CFEngine, Chef, Docker, Puppet, Salt.  
+the instantiated guest system) can be done using one or more of the
+supported configuration management tools: shell scripts, Ansible,
+CFEngine, Chef, Docker, Puppet, Salt.  
 The Vagrant VM images are commonly referred as *Vagrant boxes* and they
 are provider specific. While an instantiated VM is referred as
 *development environment*.
@@ -61,9 +61,9 @@ and provisioning tools (eg: Ansible), making the whole process:
 -   reproducible: you always get the same development environment when
     you start a new development environment.
 
-The Vagrant boxes are created using [Packer](2016/01/08/packer). And these
+The Vagrant boxes are created using [Packer]({% post_url 2016-01-11-packer %}). And these
 consist on a tar file which include the virtualization software VM files
-(eg: .ovf and .vmdk) and a couple of Vagrant specific files.  
+(eg: .ovf, .vmdk) and a couple of Vagrant specific files.  
 The configuration of a development environment is done via a
 Vagrantfile. It includes settings for box selection, network port
 forwarding, shared folders, credentials, provisioning scripts, and other
@@ -210,7 +210,7 @@ If you use `push` and `pop` it is not recommended to mix them with
 Also some providers (VirtualBox included) require that when `delete` is
 used that all subsequent snapshots are deleted in the reverse order that
 they were taken.  
-Using snapshots (choose one and only one option):
+So when using snapshots choose one and only one of the options:
 
 ``` bash
 # list existing snapshots
@@ -234,7 +234,7 @@ vagrant snapshot delete $snap_name
 ## Your own environment
 
 This section details how to add a local Vagrant box (that was created
-with [Packer](2016/01/08/packer)) and how to set up a development environment
+with [Packer]({% post_url 2016-01-11-packer %})) and how to set up a development environment
 using a Vagrantfile. It goes through the most commonly used Vagrantfile
 settings.
 
@@ -261,20 +261,6 @@ Create a blank Vagrantfile:
 ``` bash
 vagrant init
 ```
-
-Our use case matches the default scenario where the guest is Linux and
-communication is done via `ssh`. But Vagrant also supports Windows guest
-where communication is done via `winrm`.  
-Vagrant also supports synced folders via different implementations: NFS
-(Linux only), Samba (Windows only), rsync, and the provider's own
-mechanism (eg: VirtualBox shared folders). However these are not
-perfect; do check the [Known issues](#known-issues) section for more
-information.  
-Regarding rsync, it does a one-time one-way (from host to guest) folder
-synchronization on `vagrant up`, `vagrant reload` and `vagrant rsync`.
-There is also `vagrant rsync-auto` which runs in the foreground
-listening to events on the local filesystem before it does a folder
-sync; however this command has a few caveats.
 
 Then to configure a new environment, that uses the new box, edit the
 Vagrantfile as follows:
@@ -324,14 +310,28 @@ config.vm.provision "shell", path: "scripts/packages.sh"
 config.vm.provision "shell", inline: "/bin/bash /path/to/script.sh"
 ```
 
-Instantiate a new environment using our box and connect to it:
+Our use case matches the default scenario where the guest is Linux and
+communication is done via `ssh`. But Vagrant also supports Windows guest
+where communication is done via `winrm`.  
+Vagrant also supports synced folders via different implementations: NFS
+(Linux only), Samba (Windows only), rsync, and the provider's own
+mechanism (eg: VirtualBox shared folders). However these are not
+perfect; do check the [Known issues](#known-issues) section for more
+information.  
+Regarding rsync, it does a one-time one-way (from host to guest) folder
+synchronization on `vagrant up`, `vagrant reload` and `vagrant rsync`.
+There is also `vagrant rsync-auto` which runs in the foreground
+listening to events on the local filesystem before it does a folder
+sync; however this command has a few caveats.
+
+To instantiate a new environment using our box and connect to it:
 
 ``` bash
 vagrant up
 vagrant ssh
 ```
 
-## Blog in a box
+## DevEnv 1: Blog in a box
 
 Here we'll see how to set up a development environment ready for
 blogging by installing the GitHub Pages gem (which uses a specific
@@ -339,9 +339,6 @@ version of Jekyll).
 This way we'll have an environment that matches the GitHub Pages website
 blogging backend and so we'll be able to preview our posts just as
 they'll be shown on the GitHub website.
-
-The code is well commented and in the general term quite similar to the
-code in the previous sections, so there isn't much to add here.
 
 The Vagrantfile:
 
@@ -444,13 +441,14 @@ cd $to_directory_with_your_blog
 pkill jekyll ; jekyll build  && jekyll serve
 ```
 
-## AWS environment
+## DevEnv 2: AWS environment
 
 The AWS provider is supported via the `vagrant-aws` plugin, which
 supports several AWS settings, so you may want to take a look at the
-README for any relevant settings that you may need. However there are
-two caveats to it:  
-1) synced folders are supported via rsync (subject to its
+[README](https://github.com/mitchellh/vagrant-aws#configuration) for any
+specific settings that you may need. However there are two caveats to
+it:  
+1) synced folders are supported via rsync (subject to rsync own
 limitations).  
 2) AWS credentials files are not supported. I have submitted a PR for
 the `vagrant-aws` plugin that [adds support for AWS config and
@@ -608,13 +606,14 @@ Related to synced folders:
 -   To run the latest version of Vagrant or any of its plugins from
     GitHub's master branch (which BTW is not recommended), then clone
     the repo and then use `bundle` to run vagrant. Check the
-    `vagrant_dev-wily64-atlas` recipe for more details, but it would go
-    something like this:
+    [vagrant\_dev-wily64-atlas](https://github.com/alexconst/vagrant_recipes/tree/master/vagrant_dev-wily64-atlas)
+    recipe for more details, but it would go something like this:
 
     ``` bash
     git clone git@github.com:alexconst/vagrant-aws.git
     cd vagrant-aws
     bundle exec vagrant version
+    bundle exec vagrant $your_commands
     ```
 
 # Troubleshooting
@@ -701,7 +700,8 @@ Related to synced folders:
 
 [^2]: If you really need to have support for AWS credential files and
     can't wait for the PR to get merged and a new release come out, then
-    take a look at the Vagrantfile for the AWS recipe at my github.
+    take a look at the [Vagrantfile for the AWS recipe at my
+    github](https://github.com/alexconst/vagrant_recipes/tree/master/blank-jessie64-aws).
 
 [^3]: <https://atlas.hashicorp.com/boxes/search>
 
