@@ -24,7 +24,7 @@ sudo pip install paramiko PyYAML Jinja2 httplib2 six
 echo "127.0.0.1" > ~/ansible_hosts
 
 # add these lines to your shell rc file
-export ANSIBLE_INVENTORY=~/ansible_hosts
+export ANSIBLE_INVENTORY=$HOME/ansible_hosts
 alias setupansible='source /usr/local/src/ansible/hacking/env-setup'
 
 # to use ansible
