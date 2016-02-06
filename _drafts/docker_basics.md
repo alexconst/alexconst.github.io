@@ -28,12 +28,12 @@ apt-cache policy docker-engine
 apt-get upgrade docker-engine
 ```
 
-Permission to dock:
+Check your permission to dock:
 ```bash
 # either su to root
 sudo bash
 
-# or add user to docker group
+# or add user to docker group (and require a complete logout and login)
 usermod -aG docker $username
 ```
 
@@ -81,11 +81,11 @@ curl -s -S "https://registry.hub.docker.com/v2/repositories/library/$dimage/tags
 # download an image (by default it will pull the one tagged with "latest")
 docker pull "$dimage"
 # check the distro release version for the latest tag (sometimes it's not really the latest!)
-docker run -i -t --rm=true "$dimage":latest cat /etc/issue
+docker run -i -t --rm=true "${dimage}:latest" cat /etc/issue
 # download an image for our chosen tag
 docker pull "$dimage$dimagetag"
 # check the distro release version
-docker run -i -t --rm=true "$dimage$dimagetag" cat /etc/issue
+docker run -i -t --rm=true "${dimage}${dimagetag}" cat /etc/issue
 # list images in our system
 #   by default these are saved in /var/lib/docker
 #   http://stackoverflow.com/questions/19234831/where-are-docker-images-stored-on-the-host-machine/25978888#25978888
@@ -150,10 +150,12 @@ hostport="4000"
 docker run -t -i --name=$container -p $hostport:$contport ubuntu /bin/bash
 ```
 
-## Testing network connectivity to the outside world
+## Testing internet connectivity
 ```bash
 # check network connectivity (the ip is from a google DNS machine)
-docker run -i -t --rm=true "$dimage":latest ping -c4 8.8.8.8
+# NOTE: this assumes a custom image which already has ping installed
+docker run -i -t --rm=true "${dimage}${dimagetag}" ping -c4 8.8.8.8
+docker run -i -t --rm=true "${dimage}${dimagetag}" ping -c4 google.com
 ```
 
 
@@ -171,18 +173,207 @@ docker commit $container_id $new_image_name
 docker images
 # run a container from our image
 container="container_from_new_image"
-docker run -t -i --name=$container -p $hostport:$contport $new_image_name /bin/bash
+docker run -t -i --name=$container $new_image_name /bin/bash
 ```
 
 ## Locales
+
 ```bash
-# locales
-# http://jaredmarkell.com/docker-and-locales/
+# switch the locale from POSIX to UTF-8
 locale-gen en_US.UTF-8
 dpkg-reconfigure locales
 echo 'export LC_ALL="en_US.UTF-8"' >> $HOME/.bashrc
 update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
 ```
+
+<http://jaredmarkell.com/docker-and-locales/>
+
+
+# Example: Jekyll container
+
+Install Jekyll via the GitHub Pages gem.
+
+NOTE: this is just a simple test and you actually don't want to use Jekyll on your system like this. Check my [Vagrant](vagrant.md) development environment [recipe](https://github.com/alexconst/vagrant_recipes/) instead.
+
+Creating a container with GHP and Jekyll:
+```bash
+container="template"
+docker run -t -i --name=$container ubuntu:wily /bin/bash
+
+# on the container run:
+apt-get update
+apt-get install -y ruby-dev bundler zlib1g-dev ruby-execjs
+# There is a bug which forces us to explicitly install activesupport, which would otherwise be done by the github-pages gem.
+# https://github.com/github/pages-gem/issues/181
+gem install activesupport
+# choosing a specific version here because that was what I originally used,
+# it may or may not work with latest github-pages release
+gem install github-pages -v 43
+# and because pygments.rb needs python pygments
+apt-get install -y python2.7-dev python-pygments
+# switch the locale from POSIX to UTF-8
+locale-gen en_US.UTF-8
+dpkg-reconfigure locales
+echo 'export LC_ALL="en_US.UTF-8"' >> $HOME/.bashrc
+update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
+
+# before we test jekyll, refresh the locale
+exit
+docker start $container
+docker attach $container
+locale
+
+# test jekyll
+apt-get install -y wget
+cd /tmp/
+jekyll new blank_site
+cd blank_site
+jekyll build
+jekyll serve &
+wget -O - http://0.0.0.0:4000/ | less
+
+# cleanup and exit
+pkill jekyll
+cd /tmp/
+ rm -rf /tmp/*
+apt-get -y autoremove
+apt-get -y clean
+exit
+```
+
+
+
+
+Creating an image from the container:
+```bash
+# check that the container is exited
+docker ps -a
+# create a new image
+new_image="template_ghp_jekyll"
+docker commit $container $new_image
+# list images
+docker images
+```
+
+
+Spinning a new container using the newly created image, with folder sharing and port forwarding:
+```bash
+contport="4000"
+hostport="4000"
+contmnt="/shared/"
+hostmnt="/home/username/home/downloads/share_docker/"
+docker run -t -i -v "${hostmnt}:${contmnt}" -p "${hostport}:${contport}"  $new_image  /bin/bash
+```
+
+To start jekyll and leave it running in the background:
+```bash
+cd /tmp/
+jekyll new blank_site
+cd blank_site
+jekyll build
+nohup jekyll serve &
+ctrl+p+q
+```
+
+
+
+# Example: Jekyll Dockerfile
+
+Dockerfile recipe for GitHub Pages Jekyll with a twist. It uses the `ENTRYPOINT` option to bind the container to an executable.
+
+Create a dir for the Dockerfile:
+```bash
+mkdir -p docker_recipes/jekyll
+cd !!:2
+```
+
+Edit the `Dockerfile` with the following:
+```dockerfile
+FROM ubuntu:wily
+
+# install packages
+RUN apt-get update && \
+    apt-get install -y \
+        ruby-dev \
+        bundler \
+        zlib1g-dev \
+        ruby-execjs \
+        --no-install-recommends && \
+    apt-get install -y \
+        python2.7-dev
+        python-pygments
+# install gems
+RUN gem install activesupport
+RUN gem install github-pages -v 43
+# cleanup
+RUN apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+# fix locale
+RUN locale-gen en_US.UTF-8
+RUN dpkg-reconfigure locales
+RUN echo 'export LC_ALL="en_US.UTF-8"' >> $HOME/.bashrc
+RUN update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
+
+# informs Docker that the container listens on the specified network ports at runtime
+# and makes this port available to processes inside the container
+EXPOSE 4000
+
+# set workdir for any commands below
+# with /shared/ being the guest volume dir when a container is spinned
+WORKDIR /shared/blog/
+# setting an entrypoint will set the container to run as an executable
+ENTRYPOINT ["jekyll"]
+# so everytime a container is created, it will cd to WORKDIR and run ENTRYPOINT
+```
+
+
+Or in case you already created an image and just want to test things:
+```dockerfile
+# replace the variable with the proper name
+FROM $new_image
+
+EXPOSE 4000
+WORKDIR /shared/blog/
+ENTRYPOINT ["jekyll"]
+```
+
+
+
+
+
+Build the image:
+```bash
+image_name_tag="alexconst/jekyll:v1"
+docker build -t "${image_name_tag}" .
+# check it
+docker images
+```
+
+
+Spin a new container from our image:
+```bash
+contport="4000"
+hostport="4000"
+contmnt="/shared/"
+hostmnt="/home/username/home/downloads/share_docker/"
+# Before you spin an image, make sure you have a directory named `blog` in the host shared folder.
+# NOTE: only run the `build` line if you have nothing there
+# create a new site:
+docker run -t -i --rm=true -v "${hostmnt}:${contmnt}" -p "${hostport}:${contport}"  "${image_name_tag}" new .
+# build the site:
+docker run -t -i --rm=true -v "${hostmnt}:${contmnt}" -p "${hostport}:${contport}"  "${image_name_tag}" build
+# serve the site:
+docker run -t -i --rm=true -v "${hostmnt}:${contmnt}" -p "${hostport}:${contport}"  "${image_name_tag}" serve
+```
+
+
+
+References:
+<https://docs.docker.com/engine/userguide/containers/dockerimages/#building-an-image-from-a-dockerfile>
+<https://docs.docker.com/engine/reference/builder/>
+<http://stackoverflow.com/questions/28510982/dockerfile-understanding-volume-instruction>
+<http://container42.com/2014/11/03/docker-indepth-volumes/>
+
 
 
 
@@ -245,7 +436,6 @@ https://fralef.me/docker-and-iptables.html
 http://blog.oddbit.com/2014/08/11/four-ways-to-connect-a-docker/
 http://odino.org/cannot-connect-to-the-internet-from-your-docker-containers/
 https://docs.docker.com/engine/installation/ubuntulinux/#enable-ufw-forwarding
-
 
 
 
