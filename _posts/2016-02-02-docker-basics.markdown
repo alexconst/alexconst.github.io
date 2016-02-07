@@ -358,7 +358,7 @@ hostport="4000"
 contmnt="/shared/"
 hostmnt="/home/username/home/downloads/share_docker/"
 # Before you spin an image, make sure you have a directory named `blog` in the host shared folder.
-# NOTE: only run the `build` line if you have nothing there
+# NOTE: only run the `new` command if you have nothing there
 # create a new site:
 docker run -t -i --rm=true -v "${hostmnt}:${contmnt}" -p "${hostport}:${contport}"  "${image_name_tag}" new .
 # build the site:
