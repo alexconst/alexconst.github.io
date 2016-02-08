@@ -78,13 +78,13 @@ Other interesting plugins:
 List of plugins: <http://vagrant-lists.github.io/>
 
 Installing plugins:
-````bash
+```bash
 vagrant plugin install vagrant-libvirt
 vagrant plugin install vagrant-vmware-free
 vagrant plugin install vagrant-aws
 vagrant plugin list
 vagrant plugin update
-````
+```
 Plugins are downloaded from the ruby gems repository and are installed to `$HOME/.vagrant.d/gems/gems/`.
 
 
@@ -97,7 +97,7 @@ Plugins are downloaded from the ruby gems repository and are installed to `$HOME
 
 This section is a bit of a cheat sheet and characterizes a typical Vagrant workflow.
 
-````bash
+```bash
 # check version
 vagrant version
 
@@ -148,7 +148,7 @@ vagrant box remove $boxname
 
 # get a list of available boxes
 vagrant box list
-````
+```
 
 
 
@@ -159,7 +159,7 @@ Taking snapshots is simple, but there are a few caveats.
 If you use `push` and `pop` it is not recommended to mix them with `save` and `restore` and `delete`.
 Also some providers (VirtualBox included) require that when `delete` is used that all subsequent snapshots are deleted in the reverse order that they were taken.
 So when using snapshots choose one and only one of the options:
-````bash
+```bash
 # list existing snapshots
 vagrant snapshot list
 
@@ -176,7 +176,7 @@ vagrant snapshot save $snap_name
 vagrant snapshot restore $snap_name
 # delete a snapshot
 vagrant snapshot delete $snap_name
-````
+```
 
 
 
@@ -186,7 +186,7 @@ vagrant snapshot delete $snap_name
 This section details how to add a local Vagrant box (that was created with [Packer](packer.md)) and how to set up a development environment using a Vagrantfile. It goes through the most commonly used Vagrantfile settings.
 
 Add a local Vagrant box to the pool of available boxes:
-````bash
+```bash
 # select the box
 boxfile="debian-802-jessie-amd64_jessie-vboxiso.box"
 boxname="alexconst/debian/jessie64/20160115.0.3"
@@ -194,17 +194,17 @@ boxname="alexconst/debian/jessie64/20160115.0.3"
 vagrant box add  "${boxfile}"  --name "${boxname}"
 # check that it has been added
 vagrant box list
-````
+```
 Note that there is a `--box-version` option to the `box add` command but that is only for remote clouds (eg: Hashicorp Atlas), so we workaround that limitation by adding the version tag to the box name. This "workaround" does give us visual identification, but doesn't really provide the version constraint features of that command option.
 
 
 Create a blank Vagrantfile:
-````bash
+```bash
 vagrant init
-````
+```
 
 Then to configure a new environment, that uses the new box, edit the Vagrantfile as follows:
-````ruby
+```ruby
 # select our box
 config.vm.box = "alexconst/debian/jessie64/20160115.0.3"
 
@@ -248,7 +248,7 @@ config.vm.provision "shell", path: "scripts/packages.sh"
 # provision done by executing an already existing script in the guest
 config.vm.provision "shell", inline: "/bin/bash /path/to/script.sh"
 
-````
+```
 
 Our use case matches the default scenario where the guest is Linux and communication is done via `ssh`. But Vagrant also supports Windows guest where communication is done via `winrm`.
 Vagrant also supports synced folders via different implementations: NFS (Linux only), Samba (Windows only), rsync, and the provider's own mechanism (eg: VirtualBox shared folders). However these are not perfect; do check the [Known issues](#known-issues) section for more information.
@@ -256,10 +256,10 @@ Regarding rsync, it does a one-time one-way (from host to guest) folder synchron
 
 
 To instantiate a new environment using our box and connect to it:
-````bash
+```bash
 vagrant up
 vagrant ssh
-````
+```
 
 
 
@@ -270,7 +270,7 @@ Here we'll see how to set up a development environment ready for blogging by ins
 This way we'll have an environment that matches the GitHub Pages website blogging backend and so we'll be able to preview our posts just as they'll be shown on the GitHub website.
 
 The Vagrantfile:
-````ruby
+```ruby
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
@@ -330,10 +330,10 @@ A Vagrant tutorial can be found at http://alexconst.github.io/"
   config.vm.provision "shell", path: "scripts/jekyll.sh"
 
 end
-````
+```
 
 And the provisioning script:
-````bash
+```bash
 #!/bin/bash
 
 apt-get update
@@ -349,12 +349,12 @@ apt-get install -y python-pygments
 gem install activesupport
 gem install github-pages
 apt-get clean
-````
+```
 
 
 
 To get jekyll running:
-````bash
+```bash
 # deploy and connect to the environment
 vagrant up
 vagrant ssh
@@ -367,7 +367,7 @@ cd $to_directory_with_your_blog
 
 # start jekyll webserver
 pkill jekyll ; jekyll build  && jekyll serve
-````
+```
 
 
 
@@ -503,10 +503,10 @@ Related to synced folders:
 - To connect to a development environment directly without going through Vagrant: `ssh -p $(vagrant port --guest 22) -l $box_username localhost`.
 
 - To enable logging:
-````bash
+```bash
 # supported levels are: debug, info, warn, error
 export VAGRANT_LOG="debug"
-````
+```
 
 - To run the latest version of Vagrant or any of its plugins from GitHub's master branch (which BTW is not recommended), then clone the repo and then use `bundle` to run vagrant. Check the [vagrant_dev-wily64-atlas](https://github.com/alexconst/vagrant_recipes/tree/master/vagrant_dev-wily64-atlas) recipe for more details, but it would go something like this:
 ```bash
@@ -528,9 +528,9 @@ SOLUTION: `apt-get install libvirt-dev` and then `gem install ruby-libvirt -v '0
 
 - failure when adding a new box
 ERROR:
-````text
+```text
 /opt/vagrant/embedded/lib/ruby/2.2.0/fileutils.rb:252:in 'mkdir': File name too long @ dir_s_mkdir - /home/$USER/.vagrant.d/boxes/file:-VAGRANTSLASH--VAGRANTSLASH--VAGRANTSLASH-...-VAGRANTSLASH-debian-802-jessie-amd64_jessie-vboxiso.box (Errno::ENAMETOOLONG)
-````
+```
 SOLUTION: `cd` into the directory with the box file and run the `vagrant box add` command from there refering directly to the filename (ie: no path)
 
 - non-fatal error message about stdin and tty
@@ -540,38 +540,38 @@ http://foo-o-rama.com/vagrant--stdin-is-not-a-tty--fix.html
 https://github.com/Varying-Vagrant-Vagrants/VVV/issues/517
 https://github.com/mitchellh/vagrant/issues/1673
 SOLUTION: add the following as the first provisioner:
-````ruby
+```ruby
 config.vm.provision "fix-no-tty", type: "shell" do |s|
     s.privileged = false
     s.inline = "sudo sed -i '/tty/!s/mesg n/tty -s \\&\\& mesg n/' /root/.profile"
 end
-````
+```
 
 - non-fatal error message about stdin when using apt
 ERROR: `dpkg-preconfigure: unable to re-open stdin: No such file or directory`
 REFERENCES:
 http://serverfault.com/questions/500764/dpkg-reconfigure-unable-to-re-open-stdin-no-file-or-directory
 SOLUTION 1: prepend the following line to any script with apt-get calls:
-````bash
+```bash
 export DEBIAN_FRONTEND=noninteractive
-````
+```
 SOLUTION 2: add the following lines before running other provisioners that use apt
-````ruby
+```ruby
 config.vm.provision "shell", inline: "echo 'export DEBIAN_FRONTEND=noninteractive' >> /root/.profile"
 config.vm.provision "shell", inline: "for user in /home/*; do echo 'export DEBIAN_FRONTEND=noninteractive' >> $user/.profile; done"
-````
+```
 
 - unable to access the guest directly via SSH when using a private network
 NOTE: failure to connect to the guest via SSH may be due to sshd configuration issues. If you can ping the machine and telnet to the SSH port, then the private network is working. If still not convinced yet, then install lighttpd and access port 80 from the host. Make sure you're using the correct IP and port. Example:
-````bash
+```bash
 ssh vagrant@$private_network_ip
 # example:
 ssh vagrant@192.168.22.50
-````
+```
 If `/etc/ssh/sshd_config` has `PasswordAuthentication no` then you'll have to use a command similar to this one:
-````bash
+```bash
 ssh -i ./.vagrant/machines/default/virtualbox/private_key vagrant@192.168.22.50
-````
+```
 
 
 
