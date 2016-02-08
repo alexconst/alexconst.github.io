@@ -16,8 +16,8 @@ this tutorial helpful.
 In any case, if you just need a cheat sheet then jump into the [Basics
 section](#basics).  
 The only major feature left out from this tutorial was Multi-Machines,
-which will be approached in another tutorial where Ansible will also be
-used.
+which will be approached in another tutorial where [Ansible]({% post_url 2016-02-08-ansible %})
+will also be used.
 
 # What is Vagrant
 
@@ -441,6 +441,94 @@ cd $to_directory_with_your_blog
 pkill jekyll ; jekyll build  && jekyll serve
 ```
 
+## DevEnv 1.1: Using Ansible
+
+Here we create the same GitHub Pages & Jekyll environment. But instead
+of using shell scripts for provisioning we'll use [Ansible]({% post_url 2016-02-08-ansible %})
+(for more information about it check my tutorial).
+
+Install Ansible on your host machine:
+
+<http://docs.ansible.com/ansible/intro_installation.html#installing-the-control-machine>
+
+NOTE: we are not setting an inventory file (which is basically a list of
+hosts) here since Vagrant will take care of it for us dynamically.
+
+``` bash
+# install Ansible from source
+cd /usr/local/src
+git clone git://github.com/ansible/ansible.git --recursive
+
+# install dependencies
+sudo pip install paramiko PyYAML Jinja2 httplib2 six
+
+alias setupansible='source /usr/local/src/ansible/hacking/env-setup'
+
+# to use ansible
+setupansible
+
+# to update Ansible
+cd /usr/local/src/ansible
+git pull --rebase
+git submodule update --init --recursive
+```
+
+Edit the Vagrantfile to have the provisioning done using Ansible:
+
+``` ruby
+config.vm.provision "ansible" do |ansible|
+  ansible.playbook = "ansible/playbook.yml"
+end
+```
+
+Create the `ansible/playbook.yml` playbook:
+
+``` yaml
+---
+# This playbook only has one play
+# And it applies to all hosts in the inventory file (which is dynamically
+# created by Vagrant)
+- hosts: all
+  # we need priviledge escalation to install software, so we become root
+  become: yes
+  # and we become root using sudo
+  become_method: sudo
+  # to perform the following tasks:
+  # (and tasks should always have a name)
+  tasks:
+    - name: Update package listing cache
+      # use the Ansible apt module to:
+      # update package list, but don't upgrade the system
+      apt: update_cache=yes upgrade=no cache_valid_time=1800
+
+    - name: Install packages required by GitHub Pages
+      # use the Ansible apt module to:
+      # install the listed packages to the latest available version
+      apt: pkg={% raw %}{{item}}{% endraw %} state=latest install_recommends=no
+      with_items:
+        - htop
+        - ruby-dev
+        - bundler
+        - zlib1g-dev
+        - ruby-execjs
+        - python-pygments
+
+    - name: Install the GitHub Pages Ruby gem
+      # use the Ansible gem module to:
+      # install the listed Ruby gems to the latest available version for all users
+      gem: name={% raw %}{{item}}{% endraw %} state=latest user_install=no
+      with_items:
+        - activesupport
+        - github-pages
+```
+
+Deploy the environment:
+
+``` bash
+setupansible
+vagrant up
+```
+
 ## DevEnv 2: AWS environment
 
 The AWS provider is supported via the `vagrant-aws` plugin, which
@@ -552,8 +640,8 @@ discussed but are worthwhile to be aware of. These are:
     and sudo settings[^8].
 
 -   Multi-machine environments  
-    This will be a subject for another tutorial where Ansible will
-    be used.
+    This will be a subject for another tutorial where
+    [Ansible]({% post_url 2016-02-08-ansible %}) will be used.
 
 # Known issues
 

@@ -12,7 +12,7 @@ tags:       tutorial vagrant
 
 This is a guide on Vagrant which covers most of what there is to known about it. If you've found other resources to be confusing, not going through all the steps, or leaving out information; then you may find this tutorial helpful.
 In any case, if you just need a cheat sheet then jump into the [Basics section](#basics).
-The only major feature left out from this tutorial was Multi-Machines, which will be approached in another tutorial where Ansible will also be used.
+The only major feature left out from this tutorial was Multi-Machines, which will be approached in another tutorial where [Ansible](ansible.md) will also be used.
 
 
 # What is Vagrant
@@ -371,6 +371,90 @@ pkill jekyll ; jekyll build  && jekyll serve
 
 
 
+## DevEnv 1.1: Using Ansible
+
+Here we create the same GitHub Pages & Jekyll environment. But instead of using shell scripts for provisioning we'll use [Ansible](ansible.md) (for more information about it check my tutorial).
+
+Install Ansible on your host machine:
+
+<http://docs.ansible.com/ansible/intro_installation.html#installing-the-control-machine>
+
+NOTE: we are not setting an inventory file (which is basically a list of hosts) here since Vagrant will take care of it for us dynamically.
+
+```bash
+# install Ansible from source
+cd /usr/local/src
+git clone git://github.com/ansible/ansible.git --recursive
+
+# install dependencies
+sudo pip install paramiko PyYAML Jinja2 httplib2 six
+
+alias setupansible='source /usr/local/src/ansible/hacking/env-setup'
+
+# to use ansible
+setupansible
+
+# to update Ansible
+cd /usr/local/src/ansible
+git pull --rebase
+git submodule update --init --recursive
+```
+
+
+
+Edit the Vagrantfile to have the provisioning done using Ansible:
+```ruby
+config.vm.provision "ansible" do |ansible|
+  ansible.playbook = "ansible/playbook.yml"
+end
+```
+
+Create the `ansible/playbook.yml` playbook:
+```yaml
+---
+# This playbook only has one play
+# And it applies to all hosts in the inventory file (which is dynamically
+# created by Vagrant)
+- hosts: all
+  # we need priviledge escalation to install software, so we become root
+  become: yes
+  # and we become root using sudo
+  become_method: sudo
+  # to perform the following tasks:
+  # (and tasks should always have a name)
+  tasks:
+    - name: Update package listing cache
+      # use the Ansible apt module to:
+      # update package list, but don't upgrade the system
+      apt: update_cache=yes upgrade=no cache_valid_time=1800
+
+    - name: Install packages required by GitHub Pages
+      # use the Ansible apt module to:
+      # install the listed packages to the latest available version
+      apt: pkg={{item}} state=latest install_recommends=no
+      with_items:
+        - htop
+        - ruby-dev
+        - bundler
+        - zlib1g-dev
+        - ruby-execjs
+        - python-pygments
+
+    - name: Install the GitHub Pages Ruby gem
+      # use the Ansible gem module to:
+      # install the listed Ruby gems to the latest available version for all users
+      gem: name={{item}} state=latest user_install=no
+      with_items:
+        - activesupport
+        - github-pages
+```
+
+Deploy the environment:
+
+```bash
+setupansible
+vagrant up
+```
 
 
 
@@ -462,7 +546,7 @@ Vagrant allows configuring additional provider specific settings as well as over
 On the scenario described in this tutorial only the SSH credentials needed to be provided. But Vagrant allows configuring several other SSH related settings, such as: guest domain/IP, guest port, private key, agent forward[^agent_harmful], X11 forward, environment forward, pty, shell and sudo settings[^ssh_settings].
 
 - Multi-machine environments
-This will be a subject for another tutorial where Ansible will be used.
+This will be a subject for another tutorial where [Ansible](ansible.md) will be used.
 
 [^hashi_atlas]: <https://atlas.hashicorp.com/boxes/search>
 [^owncatalog]: <https://github.com/hollodotme/Helpers/blob/master/Tutorials/vagrant/self-hosted-vagrant-boxes-with-versioning.md>
