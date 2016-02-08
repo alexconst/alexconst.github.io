@@ -126,6 +126,9 @@ Other interesting plugins:
     <https://github.com/dotless-de/vagrant-vbguest/>
 -   mutate: convert boxes to work with different providers
     <https://github.com/sciurus/vagrant-mutate>
+-   triggers: allow the definition of arbitrary scripts that will run on
+    the host or guest before and/or after Vagrant commands
+    <https://github.com/emyl/vagrant-triggers>
 
 List of plugins: <http://vagrant-lists.github.io/>
 
