@@ -72,7 +72,7 @@ Support for other providers can be done via plugins:
 Other interesting plugins:
 - vbguest: automatically keep the VirtualBox guest tools updated <https://github.com/dotless-de/vagrant-vbguest/>
 - mutate: convert boxes to work with different providers <https://github.com/sciurus/vagrant-mutate>
-- triggers: allow the definition of arbitrary scripts that will run on the host or guest before and/or after Vagrant commands <https://github.com/emyl/vagrant-triggers>
+- triggers: allow the definition of arbitrary scripts that will run on the host or guest before and/or after Vagrant commands <https://github.com/emyl/vagrant-triggers> ([related discussion at SO](http://stackoverflow.com/questions/21476713/is-there-any-hook-like-pre-vagrant-up))
 
 [^broken_vmware_free]: <https://github.com/mitchellh/vagrant/issues/6935>
 

@@ -128,7 +128,8 @@ Other interesting plugins:
     <https://github.com/sciurus/vagrant-mutate>
 -   triggers: allow the definition of arbitrary scripts that will run on
     the host or guest before and/or after Vagrant commands
-    <https://github.com/emyl/vagrant-triggers>
+    <https://github.com/emyl/vagrant-triggers> ([related discussion at
+    SO](http://stackoverflow.com/questions/21476713/is-there-any-hook-like-pre-vagrant-up))
 
 List of plugins: <http://vagrant-lists.github.io/>
 
