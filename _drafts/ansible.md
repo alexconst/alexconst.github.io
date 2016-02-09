@@ -320,10 +320,22 @@ Another possible approach would be querying EC2 for an inventory, grouping them 
 
 # Configuration files
 
+Ansible will use the configuration options found on the first file that it finds from the following list:
+- ANSIBLE_CONFIG (an environment variable pointing to a config file)
+- ansible.cfg (in the current directory)
+- .ansible.cfg (in the home directory)
+- /etc/ansible/ansible.cfg
+NOTE: it will only use one file. Settings are not merged.
 
- (if specified it uses the one given in the command line, then falls back to the local directory, and finally to the user home directory)
+The configuration file can be used to set a multitude of options regarding connectivity, parallelism, privilege escalation, among other settings. Nearly all of these options can be overridden in the playbooks or via command line flags. Check the documentation[^doc_cfg] for details on these options.
+
+To set your own file make a copy of the template at `$ANSIBLE_HOME/examples/ansible.cfg`.
+
+[^doc_cfg]: <http://docs.ansible.com/ansible/intro_configuration.html>
 
 
+
+# Playbooks
 
 
 
