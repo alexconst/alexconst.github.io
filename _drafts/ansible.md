@@ -20,22 +20,25 @@ It is split into the following main sections:
 *"Ansible is an IT automation tool. It can configure systems, deploy software, and orchestrate more advanced IT tasks such as continuous deployments or zero downtime rolling updates."* [^docs_ansible]
 In order to to this it uses text files where configuration management, deployment and orchestration tasks are defined.
 The advantage of using a provisioning tool like Ansible is that by using its configuration files it makes the whole process reproducible and scalable to hundreds or thousands of servers. With the benefit that these configuration files can be put under version control.
+
 An Ansible recipe is composed by:
-- one or more YAML files,
+- one or more YAML files, which define the tasks to be executed,
 - an inventory file, where target host machines are listed and grouped, and
-- an optional Ansible configuration file (if specified it uses the one given in the command line, then falls back to the local directory, and finally to the user home directory).
+- an optional Ansible configuration file.
 
 [^docs_ansible]: <http://docs.ansible.com/ansible/>
 
 Other well known provisioning tools include: Puppet (2005), Chef (2008) and Salt (2011). So why choose Ansible (2012)?
-There have been multiple discussions[^disc1] [^disc2] [^disc3] on this topic but with no clear winner standing out. The main reasons for this being related with the maturity of each tool, its prevalence inside a company, and the pros and cons that each tool brings. Although Chef does tend to be well regarded, and Ansible does tend to be recommended for new users or systems.
+There are multiple discussions[^disc1] [^disc2] [^disc3] on this topic but with no clear winner standing out. The main reasons for this being related with the maturity of each tool, its prevalence inside a company, and the pros and cons that each tool brings. Nonetheless, Chef does tend to be well regarded (and a better alternative than its Ruby counterpart Puppet), and Ansible does tend to be recommended for new users or installations.
+
 The main reasons for Ansible:
-- easy learning curve (due to the use of YAML, Python and the documentation),
+- easy learning curve (due to the use of YAML, Python and its documentation),
 - excellent documentation,
 - declarative paradigm (configuration is done as data via YAML files not code),
 - agent-less architecture (only SSH is used, so no potential vulnerable agents get installed),
-- batteries included (more than 400 modules), and
-- use of Python (loops are supported via the Jinja2 templating language).
+- batteries included (more than 400 modules),
+- use of Python (loops are supported via the Jinja2 templating language), and
+- Ansible Galaxy (a repository with thousands of Ansible recipes which you can customize to your needs).
 
 
 
@@ -60,18 +63,25 @@ To install Ansible on your host machine:
 cd /usr/local/src
 git clone git://github.com/ansible/ansible.git --recursive
 
-# install dependencies
+# install dependencies:
 sudo pip install paramiko PyYAML Jinja2 httplib2 six
+# needed for the AWS EC2 inventory:
+sudo pip install boto
 
-# set up inventory file
+# set up a default inventory file
 echo "" >> ~/ansible_hosts
 
 # add these lines to your shell rc file
-export ANSIBLE_INVENTORY=$HOME/ansible_hosts
-alias setupansible='source /usr/local/src/ansible/hacking/env-setup'
+export ANSIBLE_INVENTORY=~/ansible_hosts
+export ANSIBLE_HOME="/usr/local/src/ansible"
+alias env-ansible="source $ANSIBLE_HOME/hacking/env-setup"
+# needed for the AWS EC2 inventory:
+export ANSIBLE_EC2="$ANSIBLE_HOME/contrib/inventory/ec2.py"
+alias ansible-inv-ec2="$ANSIBLE_EC2"
+export EC2_INI_PATH="ec2.ini"
 
 # to use ansible
-setupansible
+env-ansible
 
 
 # to update Ansible
@@ -82,19 +92,21 @@ git submodule update --init --recursive
 
 
 
+
+
+
+
 # Ansible overview
 
 ```bash
 ansible --version
-# ansible 2.1.0 (devel 6b166a1048) last updated 2016/01/23 17:47:53 (GMT +100)
+# ansible 2.1.0 (devel 0f15e59cb2) last updated 2016/02/09 15:31:35 (GMT +100)
 ```
 
 
-## Operation modes
 
 Ansible supports two operation modes: ad-hoc mode and playbook mode.
 
-### Ad-hoc mode
 
 In *ad-hoc mode* commands are executed from the command line.
 Example: use the `ping` module to ping `all` the nodes in the `web.ini` inventory file, under the `vagrant` remote user.
@@ -106,7 +118,6 @@ ssh-keygen -R $node
 ssh-keyscan -H $node >> ~/.ssh/known_hosts
 ```
 
-### Playbook mode
 
 With *playbook mode* commands are executed sequentially as defined in the playbook file.
 Example: update package listing and install htop.
@@ -134,19 +145,23 @@ Example: update package listing and install htop.
       with_items:
         - htop
 ```
+
 To run the playbook:
 ```bash
+# check that the playbook syntax is correct
+ansible-playbook --syntax-check provision.yml
+# run the playbook
 ansible-playbook -i nodes.ini -u vagrant provision.yml --ask-pass
 
 # NOTE: you may need to install the sshpass package on your host machine
 ```
 
-Here is the `nodes.ini` inventory file:
+Here is the `nodes.ini` inventory file used:
 ```ini
 192.168.22.50
 ```
 
-And the Vagrantfile used:
+And a simplified Vagrantfile for testing the recipe:
 ```ruby
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
@@ -160,45 +175,30 @@ Vagrant.configure(2) do |config|
   # Set up hostname
   config.vm.hostname = "ansible-test"
 
-  # Message shown on vagrant up
-  config.vm.post_up_message = ""
-
   # Assign a static IP to the guest
   config.vm.network "private_network", ip: "192.168.22.50"
-
-  # Share an additional folder with the guest VM.
-  host_folder = ENV['HOME'] + "/home/downloads/share_vagrant"
-  guest_folder = "/shared/"
-  config.vm.synced_folder host_folder, guest_folder
-
-  # Fine tune the virtualbox VM
-  config.vm.provider "virtualbox" do |vb|
-    vb.customize [
-      "modifyvm", :id,
-      "--cpus", "2",
-      "--cpuexecutioncap", "50",
-      "--memory", "512",
-    ]
-  end
-
-  # fix annoyance, http://foo-o-rama.com/vagrant--stdin-is-not-a-tty--fix.html
-  config.vm.provision "fix-no-tty", type: "shell" do |s|
-    s.privileged = false
-    s.inline = "sudo sed -i '/tty/!s/mesg n/tty -s \\&\\& mesg n/' /root/.profile"
-  end
-  # fix annoyance, http://serverfault.com/questions/500764/dpkg-reconfigure-unable-to-re-open-stdin-no-file-or-directory
-  config.vm.provision "shell", inline: "echo 'export DEBIAN_FRONTEND=noninteractive' >> /root/.profile"
-  config.vm.provision "shell", inline: "for user in /home/*; do echo 'export DEBIAN_FRONTEND=noninteractive' >> $user/.profile; done"
-
-
-  # provisioning using shell scripts
-  #config.vm.provision "shell", path: "scripts/foo.sh"
 
 end
 ```
 
+Alternatively you could also have this `vagrant.ini` inventory file:
+```ini
+# assumes pwd is the Vagrant dir
+default ansible_ssh_host=192.168.22.50 ansible_ssh_port=22 ansible_ssh_user='vagrant' ansible_ssh_private_key_file='./.vagrant/machines/default/virtualbox/private_key'
+```
+And run this command instead:
+```bash
+ansible-playbook -i vagrant.ini provision.yml
+```
 
-## Inventory file
+
+
+
+
+
+
+
+# Inventory files
 
 The inventory file lists and groups target host machines where the playbooks can be executed. A inventory file can look like this:
 ```ini
@@ -221,7 +221,7 @@ Or more complex:
 host1
 host2
 
-# define group asia, where one of the hosts is also in the 'europe' group
+# define group 'asia', where one of the hosts is also in the 'europe' group
 # this may imply commands being executed twice on this host
 [asia]
 host2
@@ -247,6 +247,75 @@ oceania
 
 
 
+## Dynamic inventory files (with AWS)
+
+Ansible also provides a way to get an inventory of hosts from third party sources, which is particularly useful when dealing with cloud providers. Ansible includes support for: AWS EC2, Digital Ocean, Google CE, Linode, OpenStack, among others. And it also allows creating one's own dynamic inventory system[^dev_dyn_inv].
+
+[^dev_dyn_inv]: <http://docs.ansible.com/ansible/developing_inventory.html>
+
+Here follows a use case of AWS EC2 dynamic inventory system, which assumes that you've done the installation steps described in the aforementioned section (namely installing the needed packages and setting alias and environment variables in your shell rc file).
+
+
+Set up your local environment:
+```bash
+# option 1:
+# either use the default location previously set in your shell rc file
+# which should simply be "ec2.ini", point to the current dir
+echo $EC2_INI_PATH
+# and, unless you have one already, copy the provided ec2.ini to the local dir
+cp $ANSIBLE_HOME/contrib/inventory/ec2.ini .
+# you may also wish to edit this ini file to speed up the query process by commenting regions that you're not interested in
+
+# option 2:
+# or set the path to your ec2 ini file
+export EC2_INI_PATH="/path/to/ec2.ini"
+```
+
+To get a listing of running instances:
+```bash
+ansible-inv-ec2 --list
+
+# or if you need to refresh the cache
+ansible-inv-ec2 --list --refresh-cache
+
+# or if you want to choose a particular, for example 'dev', AWS profile
+AWS_PROFILE=dev ansible-inv-ec2 --list --refresh-cache
+```
+
+To execute an ad-hoc command:
+```bash
+# by default Debian machines have the 'admin' user while Ubuntu have the 'ubuntu' user
+instance_user="admin"
+# path to your SSH keypair
+instance_key="$HOME/.ssh/aws_developer.pem"
+# despite passing a profile, you still need to specify a region
+region="eu-west-1"
+
+# run the command
+AWS_PROFILE="dev"  ansible -i "$ANSIBLE_EC2" -u "$instance_user" --private-key="$instance_key" "$region"  -m ping
+```
+
+To run our playbook that installs htop:
+```bash
+# by default Debian machines have the 'admin' user while Ubuntu have the 'ubuntu' user
+instance_user="admin"
+# path to your SSH keypair
+instance_key="$HOME/.ssh/aws_developer.pem"
+
+# run the playbook
+AWS_PROFILE="dev"  ansible-playbook -i "$ANSIBLE_EC2" -u "$instance_user" --private-key="$instance_key"   provision.yml
+```
+
+Another possible approach would be querying EC2 for an inventory, grouping them according to thei EC2 tags, and saving the results to a local file. This would then give more flexibility in task execution.
+
+
+
+
+
+# Configuration files
+
+
+ (if specified it uses the one given in the command line, then falls back to the local directory, and finally to the user home directory)
 
 
 
@@ -258,7 +327,8 @@ oceania
 
 
 
-# Tips
+
+# Debugging and tips
 
 - To check if the playbook is valid execute `ansible-playbook --syntax-check playbook.yml`
 
@@ -276,7 +346,7 @@ http://stackoverflow.com/questions/18794808/how-do-i-get-logs-details-of-ansible
 - failure executing playbook
 ERROR: `ansible "Failed to lock apt for exclusive operation"`
 PROBLEM: the playbook or task needs to be executed as root. Note that `sudo: yes` has been deprecated and replaced by the `become` and `become_method` directives.
-SOLUTION: 
+SOLUTION:
 ````yaml
 become: yes
 become_method: sudo
@@ -291,8 +361,16 @@ http://stackoverflow.com/questions/22115936/install-bundler-gem-using-ansible
 
 
 - unable to connect to machine
-- ERROR: SSH encountered an unknown error during the connection. We recommend you re-run the command using -vvvv, which will enable SSH debugging output to help diagnose the issue
-- TROUBLESHOOTING: the recommendation is valid
-- SOLUTION: if the problem is related to `WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED` then (assuming you understand the cause of the problem) remove the key with `ssh-keygen -R $node` and try again.
+ERROR: SSH encountered an unknown error during the connection. We recommend you re-run the command using -vvvv, which will enable SSH debugging output to help diagnose the issue
+TROUBLESHOOTING: the recommendation is valid
+SOLUTION: if the problem is related to `WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED` then (assuming you understand the cause of the problem) remove the key with `ssh-keygen -R $node` and try again.
 
+- unable to run `ansible-inv-ec2 --list` (or `ec2.py --list`)
+ERROR: `ERROR: "Forbidden", while: getting RDS instances%` or `ERROR: "Forbidden", while: getting ElastiCache clusters%`
+PROBLEM: the AWS credentials you're using do not have access to AWS RDS and/or ElastiCache
+SOLUTION: edit your Ansible `ec2.ini` to have `rds = False` and/or `elasticache = False`
+
+
+
+# Footnotes
 
