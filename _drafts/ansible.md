@@ -109,9 +109,14 @@ Ansible supports two operation modes: ad-hoc mode and playbook mode.
 
 
 In *ad-hoc mode* commands are executed from the command line.
-Example: use the `ping` module to ping `all` the nodes in the `web.ini` inventory file, under the `vagrant` remote user.
+Example:
 ```bash
+# "ping" `all` nodes in the `nodes.ini` inventory file using the `vagrant` remote user
+# the `ping` module tries to connect to a host, verify a usable python and return pong on success
 ansible -m ping -u vagrant -i nodes.ini all --ask-pass
+
+# or gather facts from the machine
+ansible -m setup -u vagrant -i nodes.ini all --ask-pass > facts.txt
 
 # NOTE: if you get a failure (and assuming this is a trusted environment, ie on a local VM) you may have to:
 ssh-keygen -R $node
@@ -253,10 +258,10 @@ Ansible also provides a way to get an inventory of hosts from third party source
 
 [^dev_dyn_inv]: <http://docs.ansible.com/ansible/developing_inventory.html>
 
-Here follows a use case of AWS EC2 dynamic inventory system, which assumes that you've done the installation steps described in the aforementioned section (namely installing the needed packages and setting alias and environment variables in your shell rc file).
+Here follows an example of AWS EC2 dynamic inventory system, which assumes that you've done the installation steps described in the aforementioned section (namely installing the needed packages and setting alias and environment variables in your shell rc file).
 
 
-Set up your local environment:
+Get your EC2 external inventory script settings file ready:
 ```bash
 # option 1:
 # either use the default location previously set in your shell rc file
@@ -264,12 +269,13 @@ Set up your local environment:
 echo $EC2_INI_PATH
 # and, unless you have one already, copy the provided ec2.ini to the local dir
 cp $ANSIBLE_HOME/contrib/inventory/ec2.ini .
-# you may also wish to edit this ini file to speed up the query process by commenting regions that you're not interested in
 
 # option 2:
 # or set the path to your ec2 ini file
 export EC2_INI_PATH="/path/to/ec2.ini"
 ```
+
+You may wish to edit the `ec2.ini` file to better suite your needs. For example, you can speed up the query process by including or excluding regions of interest with the `regions` and `regions_exclude` variables. Or change the `cache_max_age` variable that specifies how long cache results are valid and API calls are skipped.
 
 To get a listing of running instances:
 ```bash
@@ -278,8 +284,8 @@ ansible-inv-ec2 --list
 # or if you need to refresh the cache
 ansible-inv-ec2 --list --refresh-cache
 
-# or if you want to choose a particular, for example 'dev', AWS profile
-AWS_PROFILE=dev ansible-inv-ec2 --list --refresh-cache
+# or if you want to choose a particular AWS profile, in this case 'dev'
+AWS_PROFILE="dev" ansible-inv-ec2 --list --refresh-cache
 ```
 
 To execute an ad-hoc command:
@@ -291,7 +297,7 @@ instance_key="$HOME/.ssh/aws_developer.pem"
 # despite passing a profile, you still need to specify a region
 region="eu-west-1"
 
-# run the command
+# execute the ping module
 AWS_PROFILE="dev"  ansible -i "$ANSIBLE_EC2" -u "$instance_user" --private-key="$instance_key" "$region"  -m ping
 ```
 
@@ -335,7 +341,7 @@ Another possible approach would be querying EC2 for an inventory, grouping them 
 - To log the output of a playbook:
 http://stackoverflow.com/questions/18794808/how-do-i-get-logs-details-of-ansible-playbook-module-executions
 
-- Check that your hosts are reachable `ansible all -m ping` (install the `sshpass` package on your host system and add the `--ask-pass` option if you didn't propagate an SSH keypair).
+- To check if your nodes are reachable execute `ansible all -m ping` (install the `sshpass` package on your host system and add the `--ask-pass` option if you didn't propagate an SSH keypair).
 
 
 
