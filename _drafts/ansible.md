@@ -10,16 +10,14 @@ tags:       tutorial ansible vagrant
 # About
 
 This is a concise tutorial on Ansible, which for demonstration purposes uses [Vagrant](vagrant.md) for machine/hardware abstraction.
-It is split into the following main sections:
-- installation;
-- TODO!
+It explains what Ansible is and is used for, shows how to install it, and gives an overview on its playbooks. Then goes into more detail on the files used by Ansible: inventory, config, and playbooks. It finalizes by showcasing multiple use cases.
 
 
 # What is Ansible
 
 *"Ansible is an IT automation tool. It can configure systems, deploy software, and orchestrate more advanced IT tasks such as continuous deployments or zero downtime rolling updates."* [^docs_ansible]
 In order to to this it uses text files where configuration management, deployment and orchestration tasks are defined.
-The advantage of using a provisioning tool like Ansible is that by using its configuration files it makes the whole process reproducible and scalable to hundreds or thousands of servers. With the benefit that these configuration files can be put under version control.
+The advantage of using a provisioning tool like Ansible is that by using its configuration files it makes the whole process reproducible and scalable to hundreds or thousands of servers. With the benefit that these configuration files can be put under version control. Another advantage is that Ansible's modules are implemented to be idempotent; a property not present when using shell scripts.
 
 An Ansible recipe is composed by:
 - one or more YAML playbook files, which define the tasks to be executed,
@@ -32,8 +30,8 @@ Other well known provisioning tools include: Puppet (2005), Chef (2008) and Salt
 There are multiple discussions[^disc1] [^disc2] [^disc3] on this topic but with no clear winner standing out. The main reasons for this being related with the maturity of each tool, its prevalence inside a company, and the pros and cons that each tool brings. Nonetheless, Chef does tend to be well regarded (and a better alternative than its Ruby counterpart Puppet), and Ansible does tend to be recommended for new users or installations.
 
 The main reasons for Ansible:
-- easy learning curve (due to the use of YAML, Python and its documentation),
 - excellent documentation,
+- easy learning curve (due to the use of YAML, Python and its documentation),
 - declarative paradigm (configuration is done as data via YAML files not code),
 - agent-less architecture (only SSH is used, so no potential vulnerable agents get installed),
 - batteries included (more than 400 modules),
@@ -348,7 +346,7 @@ To configure Ansible to your needs make a copy of the template at `$ANSIBLE_HOME
 
 Playbooks are YAML files that describe configuration, deployment and orchestration operations to be performed on a group of nodes.
 Each *playbook* contains a list of  *plays*, and each *play* includes a list of *tasks*, and each *task* calls an Ansible module. Tasks are executed sequentially according to the order defined in the playbook.
-Apart from those there is also the concept of *handler* which is a task that executes at the end of a *play* (but only once) when it is triggered by any of the *tasks* (that were set to notify that handler).
+Apart from those there is also the concept of *handler* which is a task that executes at the end of a *play* (but only once) when it is triggered by any of the *tasks* (that were set to notify that handler). They are typically used to restart services and reboot the machine.
 
 Parametrization of a playbook can be done via *variables*. These can be defined in playbooks, inventories, and via the command line. A special class of variables goes by the name of *facts*, which consist on information gathered from a targeted node, and are particularly useful when dealing with config files that need external IP addresses.
 
@@ -370,7 +368,7 @@ Commonly used modules:
 - `shell`: execute a command via the shell.
 
 
-The last concept to be aware are *roles*. Roles are a collection of *playbooks* that act as reusable building blocks. A file structure of a role can look something like this:
+There are two other concepts that one should know about. The first it that playbooks can `include` other playbooks. And the other one is the concept of `roles`. Roles are a collection of *playbooks* that act as reusable building blocks. The file structure of a role can look something like this:
 ```bash
 lamp_haproxy/roles/nagios
 ├── files
@@ -390,6 +388,9 @@ The [Ansible Galaxy](https://galaxy.ansible.com/) is a community driven website 
 
 
 Because the best way to understand playbooks is via examples the next sections will do just that. But be sure to read the [Best Practices](http://docs.ansible.com/ansible/playbooks_best_practices.html) guide first, as it will help making the most out of the playbooks and Ansible.
+
+
+# Example 1: Nginx
 
 
 
