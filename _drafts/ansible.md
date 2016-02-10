@@ -335,11 +335,34 @@ To set your own file make a copy of the template at `$ANSIBLE_HOME/examples/ansi
 
 
 
-# Playbooks
+# Playbook files
+
+Playbooks are YAML files that describe configuration, deployment and orchestration operations to be performed on a group of nodes.
+Each *playbook* contains one or more *plays*, and each *play* includes one or more *tasks*, where each *task* calls an Ansible module. Tasks are then executed sequentially according to the order defined.
+Apart from those there is also the concept of *handler* which is a task that executes at the end of a *play* (but only once) when it is triggered by any of the *tasks* (that were set to notify that handler).
+
+Parametrization of a playbook can be done via *variables*. These can be defined in playbooks, inventories, and via the command line. A special class of variables goes by the name of *facts*, which consist on information gathered from a targeted node, and are particularly useful when dealing with config files that need external IP addresses.
+
+The last concept to be aware are *roles*. Roles are a collection of *playbooks* that act as reusable building blocks. A file structure of a role can look something like this:
+```text
+lamp_haproxy/roles/nagios
+├── files
+│   ├── ansible-managed-services.cfg
+│   ├── localhost.cfg
+│   └── nagios.cfg
+├── handlers
+│   └── main.yml
+├── tasks
+│   └── main.yml
+└── templates
+    ├── dbservers.cfg.j2
+    ├── lbservers.cfg.j2
+    └── webservers.cfg.j2
+```
+The [Ansible Galaxy](https://galaxy.ansible.com/) is a community driven website that has thousands of roles that can be reused as well as customized to specific needs.
 
 
-
-
+Because the best way to understand playbooks is via examples the next sections will do just that.
 
 
 
@@ -348,13 +371,21 @@ To set your own file make a copy of the template at `$ANSIBLE_HOME/examples/ansi
 
 # Debugging and tips
 
-- To check if the playbook is valid execute `ansible-playbook --syntax-check playbook.yml`
+- To check if the playbook is valid execute `ansible-playbook --syntax-check playbook.yml`.
 
-- To log the output of a playbook:
-http://stackoverflow.com/questions/18794808/how-do-i-get-logs-details-of-ansible-playbook-module-executions
+- To have the playbook execute as a dry run (ie, without really executing anything) `ansible-playbook --check playbook.yml`.
+
+- To get the stdout and stderr of each task executed in the playbook use the `-v` flag. To enable logging set the `log_path` in your `ansible.cfg` file. [^ansible_log]
+
+[^ansible_log]: <http://stackoverflow.com/questions/18794808/how-do-i-get-logs-details-of-ansible-playbook-module-executions>
 
 - To check if your nodes are reachable execute `ansible all -m ping` (install the `sshpass` package on your host system and add the `--ask-pass` option if you didn't propagate an SSH keypair).
 
+- When dealing with large playbooks it may be useful to change the execution entry point or choose which tasks to execute. By using the `--tags`/`--skip-tags` options when executing a playbook it's possible to filter which tasks get/don't get executed. And with the `--start-at-task` it's possible to choose a starting point to the playbook. A `--step` option is also provided to allow executing a playbook in interactive mode.
+
+
+Other references:
+- http://docs.ansible.com/ansible/test_strategies.html
 
 
 
