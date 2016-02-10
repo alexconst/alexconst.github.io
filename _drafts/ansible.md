@@ -22,7 +22,7 @@ In order to to this it uses text files where configuration management, deploymen
 The advantage of using a provisioning tool like Ansible is that by using its configuration files it makes the whole process reproducible and scalable to hundreds or thousands of servers. With the benefit that these configuration files can be put under version control.
 
 An Ansible recipe is composed by:
-- one or more YAML files, which define the tasks to be executed,
+- one or more YAML playbook files, which define the tasks to be executed,
 - an inventory file, where target host machines are listed and grouped, and
 - an optional Ansible configuration file.
 
@@ -37,7 +37,7 @@ The main reasons for Ansible:
 - declarative paradigm (configuration is done as data via YAML files not code),
 - agent-less architecture (only SSH is used, so no potential vulnerable agents get installed),
 - batteries included (more than 400 modules),
-- use of Python (loops are supported via the Jinja2 templating language), and
+- use of Jinja2 templating language (for variables and loop contructs), and
 - Ansible Galaxy (a repository with thousands of Ansible recipes which you can customize to your needs).
 
 
@@ -321,15 +321,24 @@ Another possible approach would be querying EC2 for an inventory, grouping them 
 # Configuration files
 
 Ansible will use the configuration options found on the first file that it finds from the following list:
-- ANSIBLE_CONFIG (an environment variable pointing to a config file)
-- ansible.cfg (in the current directory)
-- .ansible.cfg (in the home directory)
-- /etc/ansible/ansible.cfg
+- `ANSIBLE_CONFIG`: an environment variable pointing to a config file
+- `ansible.cfg`: in the current directory
+- `.ansible.cfg`: in the home directory
+- `/etc/ansible/ansible.cfg`
+
 NOTE: it will only use one file. Settings are not merged.
 
-The configuration file can be used to set a multitude of options regarding connectivity, parallelism, privilege escalation, among other settings. Nearly all of these options can be overridden in the playbooks or via command line flags. Check the documentation[^doc_cfg] for details on these options.
+The configuration file can be used to set a multitude of options regarding connectivity, parallelism, privilege escalation, among other settings. Nearly all of these options can be overridden in the playbooks or via command line flags. Check the documentation[^doc_cfg] for a list of all options. Some of the most useful ones are:
+- `forks`: the default number of processes to spawn when communicating with remote hosts. By default it is automatically limited to the number of possible hosts.
+- `gathering`: by default is set to `implicit` which ignores the fact cache and gathers facts per play unless the `gather_facts: False` is set in the playbook. The `explicit` option does the opposite. The `smart` setting will only gather facts once per playbook. Both `explicit` and `smart` use the facts cache.
+- `log_path`: if configured it will be used to log information.
+- `nocows`: set to 1 if you don't like them.
+- `private_key_file`: points to a private key file. You can use this config option instead of the `ansible --private-key`.
+- `vault_password_file`: sets the path to Ansible Vault password file.
 
-To set your own file make a copy of the template at `$ANSIBLE_HOME/examples/ansible.cfg`.
+If you're looking to optimize your operations look into the `pipelining` and `accelerate_*` options.
+
+To configure Ansible to your needs make a copy of the template at `$ANSIBLE_HOME/examples/ansible.cfg` to your local dir.
 
 [^doc_cfg]: <http://docs.ansible.com/ansible/intro_configuration.html>
 
@@ -338,13 +347,31 @@ To set your own file make a copy of the template at `$ANSIBLE_HOME/examples/ansi
 # Playbook files
 
 Playbooks are YAML files that describe configuration, deployment and orchestration operations to be performed on a group of nodes.
-Each *playbook* contains one or more *plays*, and each *play* includes one or more *tasks*, where each *task* calls an Ansible module. Tasks are then executed sequentially according to the order defined.
+Each *playbook* contains a list of  *plays*, and each *play* includes a list of *tasks*, and each *task* calls an Ansible module. Tasks are executed sequentially according to the order defined in the playbook.
 Apart from those there is also the concept of *handler* which is a task that executes at the end of a *play* (but only once) when it is triggered by any of the *tasks* (that were set to notify that handler).
 
 Parametrization of a playbook can be done via *variables*. These can be defined in playbooks, inventories, and via the command line. A special class of variables goes by the name of *facts*, which consist on information gathered from a targeted node, and are particularly useful when dealing with config files that need external IP addresses.
 
+Commonly used entries in a playbook:
+- `hosts`: a list of one or more groups of nodes where the playbook will be executed.
+- `vars`: a list of variables that can be used both in the Jinja2 template files and also in the tasks in the playbook.
+- `remote_user`: the remote user used to login to the node.
+- `become`: if set to `yes` the remote user will switch to root before executing the tasks.
+- `become_method`: defines the switch user method, typically it's `sudo`.
+- `tasks`: a list of tasks.
+- `task`: each tasks makes use of a module to perform an operation and eventually `notify` a handler.
+- `handlers`: a list of handlers. With each handler being executed at most once, at the end of the playbook.
+
+Commonly used modules:
+- `apt` and `yum`: package management.
+- `template`: evaluate the input Jinja2 template file and copy its result to the remote node.
+- `copy`: copy a file to the remote node.
+- `command`: execute a command without invoking a shell or using environment variables.
+- `shell`: execute a command via the shell.
+
+
 The last concept to be aware are *roles*. Roles are a collection of *playbooks* that act as reusable building blocks. A file structure of a role can look something like this:
-```text
+```bash
 lamp_haproxy/roles/nagios
 ├── files
 │   ├── ansible-managed-services.cfg
@@ -359,10 +386,10 @@ lamp_haproxy/roles/nagios
     ├── lbservers.cfg.j2
     └── webservers.cfg.j2
 ```
-The [Ansible Galaxy](https://galaxy.ansible.com/) is a community driven website that has thousands of roles that can be reused as well as customized to specific needs.
+The [Ansible Galaxy](https://galaxy.ansible.com/) is a community driven website that has thousands of roles that can be reused and customized to specific needs.
 
 
-Because the best way to understand playbooks is via examples the next sections will do just that.
+Because the best way to understand playbooks is via examples the next sections will do just that. But be sure to read the [Best Practices](http://docs.ansible.com/ansible/playbooks_best_practices.html) guide first, as it will help making the most out of the playbooks and Ansible.
 
 
 
