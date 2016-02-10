@@ -375,7 +375,9 @@ Because the best way to understand playbooks is via examples the next sections w
 
 - To have the playbook execute as a dry run (ie, without really executing anything) `ansible-playbook --check playbook.yml`.
 
-- To get the stdout and stderr of each task executed in the playbook use the `-v` flag. To enable logging set the `log_path` in your `ansible.cfg` file. [^ansible_log]
+- To get the stdout and stderr of each task executed in the playbook use the `-v` flag. 
+
+- To enable logging set the `log_path` in your `ansible.cfg` file. [^ansible_log]
 
 [^ansible_log]: <http://stackoverflow.com/questions/18794808/how-do-i-get-logs-details-of-ansible-playbook-module-executions>
 
