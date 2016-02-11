@@ -10,9 +10,8 @@ tags:       tutorial vagrant
 
 # About
 
-This is a guide on Vagrant which covers most of what there is to known about it. If you've found other resources to be confusing, not going through all the steps, or leaving out information; then you may find this tutorial helpful.
+This is a guide on Vagrant which covers most of what there is to known about it. If you've found other resources to be confusing, not going through all the steps, or not able to demystify how things work; then you may find this tutorial helpful.
 In any case, if you just need a cheat sheet then jump into the [Basics section](#basics).
-The only major feature left out from this tutorial was Multi-Machines, which will be approached in another tutorial where [Ansible](ansible.md) will also be used.
 
 
 # What is Vagrant
@@ -31,7 +30,7 @@ The Vagrant VM images are commonly referred as *Vagrant boxes* and they are prov
 
 # Understanding the magic
 
-Vagrant acts as a wrapper around different providers (eg: VirtualBox) and provisioning tools (eg: Ansible), making the whole process:
+Vagrant acts as a wrapper around different providers (eg: VirtualBox) and provisioning tools (eg: [Ansible](ansible.md)), making the whole process:
 - easy: with just a couple of commands you can ssh into a new development environment;
 - simple: no need to configure any settings from each virtualization software;
 - uniform: it works the same way across multiple cloud providers and virtualization platforms (assuming Vagrant boxes are available for those providers); and
@@ -39,7 +38,7 @@ Vagrant acts as a wrapper around different providers (eg: VirtualBox) and provis
 
 The Vagrant boxes are created using [Packer](packer.md). And these consist on a tar file which include the virtualization software VM files (eg: .ovf, .vmdk) and a couple of Vagrant specific files.
 The configuration of a development environment is done via a Vagrantfile. It includes settings for box selection, network port forwarding, shared folders, credentials, provisioning scripts, and other settings; for one or more machine instances.
-When a new environment is created using `vagrant up` Vagrant loads a series of Vagrant files and merges and overrides the settings as it goes. The order being: the Vagrantfile packaged in the box, the Vagrantfile at `~/.vagrant.d/`, the Vagrantfile for the current environment (this is the one that we'll change most of the time), multi-machines overrides, and provider specific overrides.
+When a new environment is created using `vagrant up` Vagrant loads a series of Vagrant files and merges and overrides the settings as it goes. The order being: the Vagrantfile packaged in the box, the Vagrantfile at `~/.vagrant.d/`, the Vagrantfile for the current environment (this is the one that we'll change most of the time), multi-machine overrides, and provider specific overrides.
 Vagrant boxes are installed to `~/.vagrant.d/boxes/` while environments are created at each provider's own default folder.
 Vagrant then acts as a wrapper to the different virtualization software simplifying the whole process. For example, when `vagrant up` is executed it (if required) downloads a VM image, unpacks it, starts the VM, installs and configures software packages, and sets up the network and shared folders.
 This means that with a Vagrantfile and the corresponding provisioning scripts it becomes possible to define a whole development environment consisting of one or more machines. With the advantage that the whole configuration can be easily shared and put under version control.
@@ -519,6 +518,76 @@ vagrant ssh
 ```
 
 
+## DevEnv 3: Multi-Machine environment
+
+This is a mock example of a multi-machine environment. For a more realistic example, with complete provisioning, check this [Ansible](ansible.md) tutorial.
+
+```ruby
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure(2) do |config|
+
+  # Choose a box
+  config.vm.box = "ubuntu/wily64"
+
+  # Fine tune the virtualbox VM
+  config.vm.provider "virtualbox" do |vb|
+    vb.customize [
+      "modifyvm", :id,
+      "--cpus", "2",
+      "--cpuexecutioncap", "50",
+      "--memory", "384",
+    ]
+  end
+
+  # Common provisioning
+  config.vm.provision :shell, inline: 'echo "Hello World"'
+
+  # web servers
+  (1..2).each do |i|
+    config.vm.define "web#{i}" do |node|
+      node.vm.hostname = "web#{i}"
+      node.vm.network :private_network, ip: "192.168.33.5#{i}"
+      node.vm.network "forwarded_port", guest: 80, host: "808#{i}"
+      # web server specific provisioning
+      node.vm.provision :shell, inline: 'echo "Web server reporting for duty."'
+    end
+  end
+
+  # db server
+  config.vm.define "db" do |db|
+    db.vm.hostname = "db"
+    db.vm.network :private_network, ip: "192.168.33.40"
+    db.vm.network "forwarded_port", guest: 5432, host: "54322"
+    # db server specific provisioning
+    db.vm.provision :shell, inline: 'echo "DB server ready to store and serve."'
+  end
+
+end
+```
+Because the Vagrantfile is a valid Ruby file it's possible to define a group of machines using the language constructs. Here the web servers are iterated and configured using the `node` object.
+The settings applied to the `config` object (eg: `config.vm.box`) affect all the machines described in the Vagrantfile. While the settings applied to the `node` and `db` objects only affect the corresponding machines. With the above Vagrantfile, this will be observable when doing `vagrant up` thanks to the `provision` settings.
+
+To use the environment:
+```bash
+# check status for all machines in the environment
+vagrant status
+
+# deploy the environment
+vagrant up
+# or just a single machine
+vagrant up web1
+
+# to connect to web1
+vagrant ssh web1
+# and since the machines are in a private network, you can connect from web1 to web2
+ssh 192.168.33.52
+
+# to destroy all machines in the environment without prompting the user
+vagrant destroy -f
+```
+
 
 
 
@@ -546,8 +615,6 @@ Vagrant allows configuring additional provider specific settings as well as over
 - SSH settings
 On the scenario described in this tutorial only the SSH credentials needed to be provided. But Vagrant allows configuring several other SSH related settings, such as: guest domain/IP, guest port, private key, agent forward[^agent_harmful], X11 forward, environment forward, pty, shell and sudo settings[^ssh_settings].
 
-- Multi-machine environments
-This will be a subject for another tutorial where [Ansible](ansible.md) will be used.
 
 [^hashi_atlas]: <https://atlas.hashicorp.com/boxes/search>
 [^owncatalog]: <https://github.com/hollodotme/Helpers/blob/master/Tutorials/vagrant/self-hosted-vagrant-boxes-with-versioning.md>
