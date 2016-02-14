@@ -9,9 +9,7 @@ tags:       tutorial ansible vagrant
 
 # About
 
-This is a concise tutorial on Ansible, which for demonstration purposes uses [Vagrant](vagrant.md) for machine/hardware abstraction.
-It explains what Ansible is and is used for, shows how to install it, and gives an overview on its playbooks. Then goes into more detail on the files used by Ansible: inventory, config, and playbooks. It finalizes by showcasing multiple use cases.
-
+This is a concise tutorial on Ansible. It starts by giving a description on what Ansible is and what it is used for, provides instructions how to install it, and gives an overview on its playbooks. Then goes into more detail on the files used by Ansible: inventory, configuration, and playbooks. It finalizes by showcasing multiple use cases. [Vagrant](vagrant.md) will be used in this tutorial since it provides us a convenient way to make development environments easily available for testing Ansible.
 
 # What is Ansible
 
