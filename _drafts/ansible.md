@@ -63,6 +63,8 @@ git clone git://github.com/ansible/ansible.git --recursive
 sudo pip install paramiko PyYAML Jinja2 httplib2 six
 # needed for the AWS EC2 inventory:
 sudo pip install boto
+# needed for connecting to a guest when using passwords
+sudo apt-get install -y sshpass
 
 # set up a default inventory file
 echo "" >> ~/ansible_hosts
@@ -99,6 +101,34 @@ ansible --version
 # ansible 2.1.0 (devel 0f15e59cb2) last updated 2016/02/09 15:31:35 (GMT +100)
 ```
 
+If you wish to test the commands described in this section then start by preparing a test environment.
+
+Use the following Vagrantfile and `vagrant up` to deploy a new environment.
+```ruby
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure(2) do |config|
+
+  # Choose a box with VBox guest tools already installed and a Ruby version
+  # compatible with GitHub Pages and Jekyll.
+  config.vm.box = "ubuntu/wily64"
+
+  # Set up hostname
+  config.vm.hostname = "ansible-test"
+
+  # Assign a static IP to the guest
+  config.vm.network "private_network", ip: "192.168.22.50"
+
+end
+```
+
+Create a `nodes.ini` inventory file:
+```ini
+192.168.22.50
+```
+Now you're ready to test Ansible.
+
 
 
 Ansible supports two operation modes: ad-hoc mode and playbook mode.
@@ -120,8 +150,7 @@ ssh-keyscan -H $node >> ~/.ssh/known_hosts
 ```
 
 
-With *playbook mode* commands are executed sequentially as defined in the playbook file.
-Example: update package listing and install htop.
+With *playbook mode* commands are executed sequentially as defined in the playbook file. In the example listed here we update the package listing and install htop.
 ```yaml
 ---
 # This playbook only has one play
@@ -157,41 +186,16 @@ ansible-playbook -i nodes.ini -u vagrant provision.yml --ask-pass
 # NOTE: you may need to install the sshpass package on your host machine
 ```
 
-Here is the `nodes.ini` inventory file used:
-```ini
-192.168.22.50
-```
 
-And a simplified Vagrantfile for testing the recipe:
-```ruby
-# -*- mode: ruby -*-
-# vi: set ft=ruby :
-
-Vagrant.configure(2) do |config|
-
-  # Choose a box with VBox guest tools already installed and a Ruby version
-  # compatible with GitHub Pages and Jekyll.
-  config.vm.box = "ubuntu/wily64"
-
-  # Set up hostname
-  config.vm.hostname = "ansible-test"
-
-  # Assign a static IP to the guest
-  config.vm.network "private_network", ip: "192.168.22.50"
-
-end
-```
-
-Alternatively you could also have this `vagrant.ini` inventory file:
+In the examples shown above we used the `nodes.ini` inventory which only contained the IP address of the target machine. But alternatively we could have used this `vagrant.ini` inventory file instead:
 ```ini
 # assumes pwd is the Vagrant dir
 default ansible_ssh_host=192.168.22.50 ansible_ssh_port=22 ansible_ssh_user='vagrant' ansible_ssh_private_key_file='./.vagrant/machines/default/virtualbox/private_key'
 ```
-And run this command instead:
+Which would then simplify the command for running playbooks to this:
 ```bash
 ansible-playbook -i vagrant.ini provision.yml
 ```
-
 
 
 
@@ -223,7 +227,8 @@ host1
 host2
 
 # define group 'asia', where one of the hosts is also in the 'europe' group
-# this may imply commands being executed twice on this host
+# this may imply Ansible commands being executed twice on this host (but no
+# worries since they are idempotent)
 [asia]
 host2
 host3
@@ -254,7 +259,7 @@ Ansible also provides a way to get an inventory of hosts from third party source
 
 [^dev_dyn_inv]: <http://docs.ansible.com/ansible/developing_inventory.html>
 
-Here follows an example of AWS EC2 dynamic inventory system, which assumes that you've done the installation steps described in the aforementioned section (namely installing the needed packages and setting alias and environment variables in your shell rc file).
+Here follows an example of AWS EC2 dynamic inventory system (note that if you haven't already, you will need to perform the steps described in the Installation section; namely installing the needed packages and setting alias and environment variables in your shell rc file).
 
 
 Get your EC2 external inventory script settings file ready:
@@ -271,7 +276,7 @@ cp $ANSIBLE_HOME/contrib/inventory/ec2.ini .
 export EC2_INI_PATH="/path/to/ec2.ini"
 ```
 
-You may wish to edit the `ec2.ini` file to better suite your needs. For example, you can speed up the query process by including or excluding regions of interest with the `regions` and `regions_exclude` variables. Or change the `cache_max_age` variable that specifies how long cache results are valid and API calls are skipped.
+In a real use case you may want to edit the `ec2.ini` file to better suite your needs. For example, you can speed up the query process by including or excluding regions of interest with the `regions` and `regions_exclude` variables. Or change the `cache_max_age` variable that specifies how long cache results are valid and API calls are skipped.
 
 To get a listing of running instances:
 ```bash
@@ -308,7 +313,7 @@ instance_key="$HOME/.ssh/aws_developer.pem"
 AWS_PROFILE="dev"  ansible-playbook -i "$ANSIBLE_EC2" -u "$instance_user" --private-key="$instance_key"   provision.yml
 ```
 
-Another possible approach would be querying EC2 for an inventory, grouping them according to thei EC2 tags, and saving the results to a local file. This would then give more flexibility in task execution.
+Another possible approach would be querying EC2 for an inventory, grouping them according to their EC2 tags, and saving the results to a local file. This would then give more flexibility in task execution.
 
 
 
@@ -362,11 +367,12 @@ Commonly used modules:
 - `apt` and `yum`: package management.
 - `template`: evaluate the input Jinja2 template file and copy its result to the remote node.
 - `copy`: copy a file to the remote node.
+- `shell`: execute a command via the shell and thus making use of environment variables.
 - `command`: execute a command without invoking a shell or using environment variables.
-- `shell`: execute a command via the shell.
 
 
-There are two other concepts that one should know about. The first it that playbooks can `include` other playbooks. And the other one is the concept of `roles`. Roles are a collection of *playbooks* that act as reusable building blocks. The file structure of a role can look something like this:
+There are two other concepts that one should know about. The first it that playbooks can `include` other playbooks. And the other one is the concept of `roles`.
+Roles are a collection of *playbooks* that act as reusable building blocks. The file structure of a role can look something like this:
 ```bash
 lamp_haproxy/roles/nagios
 ├── files
