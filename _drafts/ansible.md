@@ -291,7 +291,7 @@ AWS_PROFILE="dev" ansible-inv-ec2 --list --refresh-cache
 
 To execute an ad-hoc command:
 ```bash
-# by default Debian machines have the 'admin' user while Ubuntu have the 'ubuntu' user
+# typically official Debian machines have the 'admin' user while Ubuntu have the 'ubuntu' user
 instance_user="admin"
 # path to your SSH keypair
 instance_key="$HOME/.ssh/aws_developer.pem"
@@ -313,7 +313,11 @@ instance_key="$HOME/.ssh/aws_developer.pem"
 AWS_PROFILE="dev"  ansible-playbook -i "$ANSIBLE_EC2" -u "$instance_user" --private-key="$instance_key"   provision.yml
 ```
 
-Another possible approach would be querying EC2 for an inventory, grouping them according to their EC2 tags, and saving the results to a local file. This would then give more flexibility in task execution.
+A few other points worth mentioning:
+- the default `ec2.ini` is configured to run Ansible from outside AWS EC2, however this is not the most efficient way to manage those instances.
+- when running Ansible from within AWS EC2 then using internal DNS names and IP addresses makes more sense. This can be configured via the `destination_variable` setting. Which is actually required to access the instances when dealing with a private subnet inside a VPC.
+- when running a private subnet inside a VPC then those instances will only be listed in the inventory if the `vpc_destination_variable` is set to `private_ip_address`.
+- when working with dynamic inventories many dynamic groups are automatically created. So an instance with the tag `class:webserver` would load variables from a `group_vars/ec2_tag_class_webserver`.
 
 
 
