@@ -135,13 +135,13 @@ Ansible supports two operation modes: ad-hoc mode and playbook mode.
 
 
 In *ad-hoc mode* commands are executed from the command line.
-Example:
+Examples:
 ```bash
 # "ping" `all` nodes in the `nodes.ini` inventory file using the `vagrant` remote user
 # the `ping` module tries to connect to a host, verify a usable python and return pong on success
 ansible -m ping -u vagrant -i nodes.ini all --ask-pass
 
-# or gather facts from the machine
+# collect system information (aka gathering facts)
 ansible -m setup -u vagrant -i nodes.ini all --ask-pass > facts.txt
 
 # NOTE: if you get a failure (and assuming this is a trusted environment, ie on a local VM) you may have to:
@@ -355,8 +355,6 @@ Playbooks are YAML files that describe configuration, deployment and orchestrati
 Each *playbook* contains a list of  *plays*, and each *play* includes a list of *tasks*, and each *task* calls an Ansible module. Tasks are executed sequentially according to the order defined in the playbook.
 Apart from those there is also the concept of *handler* which is a task that executes at the end of a *play* (but only once) when it is triggered by any of the *tasks* (that were set to notify that handler). They are typically used to restart services and reboot the machine.
 
-Parametrization of a playbook can be done via *variables*. These can be defined in playbooks, inventories, and via the command line. A special class of variables goes by the name of *facts*, which consist on information gathered from a targeted node, and are particularly useful when dealing with config files that need external IP addresses.
-
 Commonly used entries in a playbook:
 - `hosts`: a list of one or more groups of nodes where the playbook will be executed.
 - `vars`: a list of variables that can be used both in the Jinja2 template files and also in the tasks in the playbook.
@@ -374,8 +372,22 @@ Commonly used modules:
 - `shell`: execute a command via the shell and thus making use of environment variables.
 - `command`: execute a command without invoking a shell or using environment variables.
 
+Parametrization of a playbook can be done via *variables*. These can be defined in playbooks, inventories, and via the command line. A special class of variables goes by the name of *facts*, which consist on information gathered from the target node, and are particularly useful when dealing with config files that need external IP addresses or number of CPU cores. Facts are named using the following prefixes: `ansible_`, `facter_` and `ohai_`; where the first group refers to Ansible's own facts scheme, while the other two are present for convenience/migration purposes and refer respectively to Puppet and Chef fact gathering systems.
 
-There are two other concepts that one should know about. The first it that playbooks can `include` other playbooks. And the other one is the concept of `roles`.
+To avoid keeping sensitive information like passwords in plaintext it's possible to use Ansible Vault to encrypt and decrypt secrets. It basically works like this:
+```bash
+# set your editor
+export EDITOR="vim"
+
+# create a variables file in the vault
+vaultfile="vars/main.yml"
+ansible-vault create $vaultfile
+
+# edit a file in the vault
+ansible-vault edit $vaultfile
+```
+
+There is one final concept that one should be aware and it regards reusability. Ansible makes possible for a playbook to `include` other playbooks or `roles`.
 Roles are a collection of *playbooks* that act as reusable building blocks. The file structure of a role can look something like this:
 ```bash
 lamp_haproxy/roles/nagios
