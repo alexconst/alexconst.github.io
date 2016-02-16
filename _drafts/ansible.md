@@ -411,7 +411,11 @@ Because the best way to understand playbooks is via examples the next sections w
 
 - To have the playbook execute as a dry run (ie, without really executing anything) `ansible-playbook --check playbook.yml`.
 
-- To get the stdout and stderr of each task executed in the playbook use the `-v` flag. 
+- To get the stdout and stderr of each task executed in the playbook use the `-v` flag.
+
+- To list the tasks that would be executed by an `ansible-playbook` command add the `--list-tasks` option.
+
+- To list the hosts that would be affected by an `ansible-playbook` command add the `--list-hosts` option. Especially useful when using the `--limit` option to limit to execution on a group of hosts.
 
 - To enable logging set the `log_path` in your `ansible.cfg` file. [^ansible_log]
 
