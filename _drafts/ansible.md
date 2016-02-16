@@ -9,7 +9,9 @@ tags:       tutorial ansible vagrant
 
 # About
 
-This is a concise tutorial on Ansible. It starts by giving a description on what Ansible is and what it is used for, provides instructions how to install it, and gives an overview on its playbooks. Then goes into more detail on the files used by Ansible: inventory, configuration, and playbooks. It finalizes by showcasing multiple use cases. [Vagrant](vagrant.md) will be used in this tutorial since it provides us a convenient way to make development environments easily available for testing Ansible.
+This is a concise tutorial on Ansible. It starts by giving a description on what Ansible is and what it is used for, provides instructions how to install it, and gives an overview on its playbooks. Then goes into more detail on the files used by Ansible: inventory, configuration, and playbooks. It finalizes by showcasing multiple use cases.
+[Vagrant](vagrant.md) will be used in this tutorial since it provides us a convenient way to make development environments easily available for testing Ansible.
+
 
 # What is Ansible
 
@@ -70,7 +72,7 @@ sudo apt-get install -y sshpass
 echo "" >> ~/ansible_hosts
 
 # add these lines to your shell rc file
-export ANSIBLE_INVENTORY=~/ansible_hosts
+export ANSIBLE_INVENTORY="$HOME/ansible_hosts"
 export ANSIBLE_HOME="/usr/local/src/ansible"
 alias env-ansible="source $ANSIBLE_HOME/hacking/env-setup"
 # needed for the AWS EC2 inventory:
@@ -143,10 +145,6 @@ ansible -m ping -u vagrant -i nodes.ini all --ask-pass
 
 # collect system information (aka gathering facts)
 ansible -m setup -u vagrant -i nodes.ini all --ask-pass > facts.txt
-
-# NOTE: if you get a failure (and assuming this is a trusted environment, ie on a local VM) you may have to:
-ssh-keygen -R $node
-ssh-keyscan -H $node >> ~/.ssh/known_hosts
 ```
 
 
@@ -163,12 +161,12 @@ With *playbook mode* commands are executed sequentially as defined in the playbo
   # to perform the following tasks:
   # (and tasks should always have a name)
   tasks:
-    - name: Update package listing cache
+    - name: update package listing cache
       # use the Ansible apt module to:
       # update package list, but don't upgrade the system
       apt: update_cache=yes upgrade=no cache_valid_time=1800
 
-    - name: Install package
+    - name: install packages
       # use the Ansible apt module to:
       # install the listed packages to the latest available version
       apt: pkg={{ item }} state=latest
@@ -179,11 +177,9 @@ With *playbook mode* commands are executed sequentially as defined in the playbo
 To run the playbook:
 ```bash
 # check that the playbook syntax is correct
-ansible-playbook --syntax-check provision.yml
+ansible-playbook --syntax-check htop.yml
 # run the playbook
-ansible-playbook -i nodes.ini -u vagrant provision.yml --ask-pass
-
-# NOTE: you may need to install the sshpass package on your host machine
+ansible-playbook -i nodes.ini -u vagrant htop.yml --ask-pass
 ```
 
 
@@ -194,7 +190,7 @@ default ansible_ssh_host=192.168.22.50 ansible_ssh_port=22 ansible_ssh_user='vag
 ```
 Which would then simplify the command for running playbooks to this:
 ```bash
-ansible-playbook -i vagrant.ini provision.yml
+ansible-playbook -i vagrant.ini htop.yml
 ```
 
 
@@ -266,9 +262,9 @@ Get your EC2 external inventory script settings file ready:
 ```bash
 # option 1:
 # either use the default location previously set in your shell rc file
-# which should simply be "ec2.ini", point to the current dir
+# which should simply be "ec2.ini" (thus pointing to the current dir)
 echo $EC2_INI_PATH
-# and, unless you have one already, copy the provided ec2.ini to the local dir
+# and copy the provided ec2.ini to the local dir
 cp $ANSIBLE_HOME/contrib/inventory/ec2.ini .
 
 # option 2:
@@ -310,14 +306,14 @@ instance_user="admin"
 instance_key="$HOME/.ssh/aws_developer.pem"
 
 # run the playbook
-AWS_PROFILE="dev"  ansible-playbook -i "$ANSIBLE_EC2" -u "$instance_user" --private-key="$instance_key"   provision.yml
+AWS_PROFILE="dev"  ansible-playbook -i "$ANSIBLE_EC2" -u "$instance_user" --private-key="$instance_key"   htop.yml
 ```
 
 A few other points worth mentioning:
 - the default `ec2.ini` is configured to run Ansible from outside AWS EC2, however this is not the most efficient way to manage those instances.
 - when running Ansible from within AWS EC2 then using internal DNS names and IP addresses makes more sense. This can be configured via the `destination_variable` setting. Which is actually required to access the instances when dealing with a private subnet inside a VPC.
 - when running a private subnet inside a VPC then those instances will only be listed in the inventory if the `vpc_destination_variable` is set to `private_ip_address`.
-- when working with dynamic inventories many dynamic groups are automatically created. So an instance with the tag `class:webserver` would load variables from a `group_vars/ec2_tag_class_webserver`.
+- when working with dynamic inventories many dynamic groups are automatically created. So an instance with an AWS tag such as `class:webserver` would load variables from a `group_vars/ec2_tag_class_webserver` variables file.
 
 
 
@@ -333,7 +329,7 @@ Ansible will use the configuration options found on the first file that it finds
 
 NOTE: it will only use one file. Settings are not merged.
 
-The configuration file can be used to set a multitude of options regarding connectivity, parallelism, privilege escalation, among other settings. Nearly all of these options can be overridden in the playbooks or via command line flags. Check the documentation[^doc_cfg] for a list of all options. Some of the most useful ones are:
+The configuration file can be used to set a multitude of options regarding connectivity, parallelism, privilege escalation, among other settings. Nearly all of these options can be overridden in the playbooks or via command line flags. Check the [documentation](http://docs.ansible.com/ansible/intro_configuration.html) for a list of all options. Some of the most useful ones are:
 - `forks`: the default number of processes to spawn when communicating with remote hosts. By default it is automatically limited to the number of possible hosts.
 - `gathering`: by default is set to `implicit` which ignores the fact cache and gathers facts per play unless the `gather_facts: False` is set in the playbook. The `explicit` option does the opposite. The `smart` setting will only gather facts once per playbook. Both `explicit` and `smart` use the facts cache.
 - `log_path`: if configured it will be used to log information.
@@ -345,7 +341,7 @@ If you're looking to optimize your operations look into the `pipelining` and `ac
 
 To configure Ansible to your needs make a copy of the template at `$ANSIBLE_HOME/examples/ansible.cfg` to your local dir.
 
-[^doc_cfg]: <http://docs.ansible.com/ansible/intro_configuration.html>
+
 
 
 
@@ -464,9 +460,18 @@ http://stackoverflow.com/questions/22115936/install-bundler-gem-using-ansible
 
 
 - unable to connect to machine
-ERROR: SSH encountered an unknown error during the connection. We recommend you re-run the command using -vvvv, which will enable SSH debugging output to help diagnose the issue
-TROUBLESHOOTING: the recommendation is valid
-SOLUTION: if the problem is related to `WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED` then (assuming you understand the cause of the problem) remove the key with `ssh-keygen -R $node` and try again.
+ERROR: *SSH encountered an unknown error during the connection. We recommend you re-run the command using -vvvv, which will enable SSH debugging output to help diagnose the issue*
+TROUBLESHOOTING: attempt to manually connect to the instance, if the problem is related to `WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED` then try the solution listed here
+SOLUTION: assuming you understand the cause of the problem then try again after executing the following:
+```bash
+# select the instance with problems
+node="192.168.22.50"
+# remove the old key
+ssh-keygen -R $node
+# add the new key
+ssh-keyscan -H $node >> $HOME/.ssh/known_hosts
+```
+TROUBLESHOOTING: if that doesn't solve it then try using the -vvvv option when manually connecting with ssh to see if you can determine the root cause
 
 - unable to run `ansible-inv-ec2 --list` (or `ec2.py --list`)
 ERROR: `ERROR: "Forbidden", while: getting RDS instances%` or `ERROR: "Forbidden", while: getting ElastiCache clusters%`
