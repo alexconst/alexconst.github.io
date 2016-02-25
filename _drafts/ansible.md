@@ -353,7 +353,9 @@ Apart from those there is also the concept of *handler* which is a task that exe
 
 Commonly used entries in a playbook:
 - `hosts`: a list of one or more groups of nodes where the playbook will be executed.
+- `gather_facts`: you can turn off fact gathering by setting it to `no` (but the best would be instead to use `gathering = smart` in your ansible.cfg)
 - `vars`: a list of variables that can be used both in the Jinja2 template files and also in the tasks in the playbook.
+- `vars_files`: a list of playbook files that have variable definitions.
 - `remote_user`: the remote user used to login to the node.
 - `become`: if set to `yes` the remote user will switch to root before executing the tasks.
 - `become_method`: defines the switch user method, typically it's `sudo`.
@@ -406,7 +408,316 @@ The [Ansible Galaxy](https://galaxy.ansible.com/) is a community driven website 
 Because the best way to understand playbooks is via examples the next sections will do just that. But be sure to read the [Best Practices](http://docs.ansible.com/ansible/playbooks_best_practices.html) guide first, as it will help making the most out of the playbooks and Ansible.
 
 
-# Example 1: Nginx
+# Example 1: SSH keys
+
+Using Vagrant is very convenient when testing environments and provisioning. But with each `vagrant up` the SSH fingerprints at `$HOME/.ssh/know_hosts` also get updated which can lead to errors when provisioning. While this can be a deterrent for MitM attacks it becomes a nuisance when testing things out in a local environment since it requires intervention with each new deploy, namely by editing `known_hosts` or running `ssh-keygen -R $hosts`.
+A more interesting way to fix this is by running Ansible on the localhost. While not particular useful in this case the approach used can be adapted for managing keys in other situations. And it's also a good excuse to flex Ansible's muscle.
+The files for this example are in the `refresh_ssh_public_keys` directory.
+
+The inventory file. It isn't strictly required but does fix a warning.
+```dosini
+localhost              ansible_connection=local
+```
+
+The playbook:
+```yaml
+---
+# This playbook refreshes local SSH key fingerprints. Useful when using Vagrant.
+#
+# To run the playbook on your localhost:
+#   ansible-playbook main.yml
+# Or to avoid any warnings:
+#   ansible-playbook -i localhost.ini main.yml
+#
+# NOTE: this should be used only in a trusted local environment. Otherwise you
+# may be making yourself vulnerable to MitM attacks.
+#
+- hosts: localhost
+  gather_facts: no
+  vars:
+    known_hosts_file: "~/.ssh/known_hosts"
+    # Only hosts in this range will be updated:
+    target_subnet: "192.168.22."
+    host_start: 50
+    host_end: 59
+  tasks:
+    - name: Check if the known hosts file exists
+      file: "path={{ known_hosts_file }} state=file"
+      # Save the task output/report/log to a variable
+      register: file_check
+      # We ignore errors here because we'll handle them in the next task
+      ignore_errors: true
+
+    - name: Create the known hosts file when not found
+      file: "path={{ known_hosts_file }} state=touch"
+      # Use Jinja2 template filters to check if the field 'failed' exists
+      when: file_check | failed
+
+      # Given that we'll re-use the list it's convenient to save it to a register
+    - name: Dummy task to build list of nodes for ssh fingerprint
+      assert: { that: "'a' == 'a'" }
+      # create a custom sequence and save it to register target_hosts
+      with_sequence:
+        start={{host_start}}
+        end={{host_end}}
+        format={{target_subnet}}%i
+      register: target_hosts
+
+    - name: Remove SSH fingerprints if they exist
+      known_hosts:
+        state=absent
+        path="{{known_hosts_file}}"
+        host="{{item}}"
+        # Preprocess data in register, using Jinja2 templates, in order to allow
+        # easy access via {{item}} instead of {{item.item}}
+      with_items: "{{ target_hosts.results | map(attribute='item') | list }}"
+
+    - name: Add SSH fingerprints if the node is online
+      # This task makes use of the lookup module which allows accessing data from
+      # outside sources. In particular it uses the pipe lookup which returns the
+      # raw output of the specified ssh-keyscan command.
+      known_hosts:
+        state=present
+        path="{{known_hosts_file}}"
+        host="{{item}}"
+        key="{{ lookup('pipe', 'ssh-keyscan -H -T 1 {{item}}') }}"
+      with_items: "{{ target_hosts.results | map(attribute='item') | list }}"
+      ignore_errors: yes
+```
+
+To execute the playbook:
+```bash
+ansible-playbook -i localhost.ini main.yml
+```
+
+
+
+# Example 2: nginx
+
+This section demonstrates the creation of a role for nginx. 
+The purpose of this example is to give an idea of what role creation involves as well as to further exemplify playbooks. It doesn't aim to be a fully-fledged role, especially given that there are already very complete and versatile recipes available at Ansible Galaxy.
+
+The nginx role structure:
+```bash
+website
+├── ansible.cfg                     # Ansible configuration file
+├── example_nginx.ini               # Inventory with Vagrant machine details
+├── example_nginx.Vagrantfile       # Vagrantfile for this example
+├── example_nginx.yml               # Playbook for this example
+├── group_vars
+│   ├── all                         # Variables used by all hosts
+│   └── webservers                  # Variables used by all webservers
+├── roles
+│   ├── common
+│   │   └── tasks                   # Tasks executed by all roles
+│   │       └── main.yml
+│   └── nginx                       # nginx role
+│       ├── files                   # Files to be copied to the guest machines
+│       │   └── humans.txt
+│       ├── handlers                # Handlers notified by tasks
+│       │   └── main.yml
+│       ├── tasks                   # nginx tasks
+│       │   └── main.yml
+│       └── templates               # Templates expanded and copied to the guest machines
+│           ├── index.html.j2
+│           ├── nginx.conf.j2
+│           └── sites-available_default.j2
+└── Vagrantfile                     # Symbolic link to example_nginx.Vagrantfile
+```
+
+The `example_nginx.ini` inventory file includes all webservers:
+```bash
+[webservers]
+default ansible_ssh_host=192.168.22.51 ansible_ssh_port=22 ansible_ssh_user='vagrant' ansible_ssh_private_key_file='./.vagrant/machines/default/virtualbox/private_key'
+```
+
+The "main" playbook `example_nginx.yml` installs nginx and deploys the website on all webservers, after executing the common role.
+```yaml
+---
+- name: deploy website
+  hosts: webservers
+  become: yes
+  become_method: sudo
+
+  roles:
+    - common
+    - nginx
+```
+
+The variables for the `webservers` (the variables list `all` doesn't have anything yet):
+```yaml
+---
+website_root: /var/www/mysite
+website_port: 80
+```
+
+The `common` role includes any operations that may be shared by more than one role:
+```yaml
+---
+# Use the apt module to: update package list, but don't upgrade the system
+- name: update package listing cache
+  apt: update_cache=yes upgrade=no cache_valid_time=1800
+```
+
+
+The main playbook for this role is responsible for installing nginx, configuring it via Jinja2 templates, deploying the website, and notifying the task handler for restarting the nginx daemon. The playbook is as follows:
+```yaml
+---
+# Install latest version of nginx package.
+# Cache is not updated here since that is done in the common role.
+- name: install latest nginx
+  apt: name=nginx state=latest update_cache=no
+  notify: restart nginx
+
+# Enable nginx to start at boot.
+- name: enable nginx
+  service: name=nginx enabled=yes
+
+# Configure nginx settings.
+- name: configure nginx settings
+  template: src=nginx.conf.j2 dest=/etc/nginx/nginx.conf
+  notify: restart nginx
+
+# Configure nginx websites.
+- name: configure nginx websites
+  template: src=sites-available_default.j2 dest=/etc/nginx/sites-available/default
+  notify: restart nginx
+
+########################
+# Copy the website.
+# This could also include downloading from a git repo.
+########################
+- name: create website root dir
+  file: path={{ website_root }} state=directory mode=755
+- name: copy a file
+  copy: src=humans.txt dest={{ website_root }}/humans.txt
+  notify: restart nginx
+- name: copy website index
+  template: src=index.html.j2 dest={{ website_root }}/index.html
+  notify: restart nginx
+```
+
+Let us now look at the template files. First the `nginx.conf.j2` template.
+The first line includes a comment that will expanded through the `{{ ansible_managed }}` variable whose purpose is to alert that the file is auto-generated and should not be edited.
+The only other line of interest, in Ansible context anyway, is `{{ ansible_processor_vcpus * 2 }}` which allows optimizing the number of workers dynamically by using Ansible facts gathering.
+```bash
+# {{ ansible_managed }}
+
+user www-data;
+worker_processes {{ ansible_processor_vcpus * 2 }};
+pid /var/run/nginx.pid;
+
+events {
+        worker_connections  768;
+}
+
+http {
+        ##
+        # Basic Settings
+        ##
+        sendfile off;
+        # sendfile disabled because of virtualbox bug
+        # https://www.vagrantup.com/docs/synced-folders/virtualbox.html
+        tcp_nopush on;
+        tcp_nodelay on;
+        keepalive_timeout 65;
+        types_hash_max_size 2048;
+        include /etc/nginx/mime.types;
+        default_type application/octet-stream;
+
+        ##
+        # Logging Settings
+        ##
+        access_log /var/log/nginx/access.log;
+        error_log /var/log/nginx/error.log;
+
+        ##
+        # Virtual Host Configs
+        ##
+        include /etc/nginx/conf.d/*.conf;
+        include /etc/nginx/sites-enabled/*;
+}
+```
+
+The next template is responsible for configuring the website. It expands the variables previously configured for the webserver hostname, port and website root directory location.
+```bash
+# {{ ansible_managed }}
+
+server {
+        server_name {{ ansible_hostname }};
+
+        listen {{ website_port }};
+        root {{ website_root }};
+        index index.html index.htm index.nginx-debian.html;
+
+        location / {
+                try_files $uri $uri/ =404;
+        }
+}
+```
+
+The last template used in this role shows some of the facts available:
+```html
+<html>
+<p>webserver <b>{{ ansible_hostname }}</b>:</p>
+<p style="text-indent: 5em;">system: {{ ansible_lsb.description }} running kernel {{ ansible_kernel }}</p>
+<p style="text-indent: 5em;">CPU: {{ ansible_processor_vcpus }} vCPUs at {{ ansible_processor[1] }}</p>
+<p style="text-indent: 5em;">RAM: {{ ansible_memtotal_mb }} MiB</p>
+<p style="text-indent: 5em;">disk: {{ (ansible_mounts[0].size_total/1024/1024/1024)|int }} GiB</p>
+<p style="text-indent: 5em;">eth0: {{ ansible_eth0.ipv4.address }}</p>
+<p style="text-indent: 5em;">eth1: {{ ansible_eth1.ipv4.address }}</p>
+</html>
+
+```
+
+
+
+
+To deploy the website:
+```bash
+# Pick the Vagrantfile for this example
+cp example_nginx.Vagrantfile Vagrantfile
+# Start the VM instance
+vagrant up
+
+# Refresh SSH fingerprints for the 192.168.22.5x range on the host, otherwise
+# Ansible would fail during provisioning with the message:
+# "SSH encountered an unknown error during the connection. ..."
+ansible-playbook -i ../refresh_ssh_public_keys/localhost.ini ../refresh_ssh_public_keys/main.yml
+
+# Perform the provisioning
+ansible-playbook -i example_nginx.ini  example_nginx.yml
+
+# Access the website:
+http://localhost:8080/
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Example 3: webservers and load balancer
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -421,13 +732,29 @@ Because the best way to understand playbooks is via examples the next sections w
 
 - To get the stdout and stderr of each task executed in the playbook use the `-v` flag.
 
+- To print statements and check variable values during playbook execution use the `debug` module. Examples:
+
+```yaml
+---
+- hosts: all 
+  # Debug examples
+  tasks:
+    # print list of ipv4 addresses when the machine has a gateway defined
+    - debug: msg="System {{ inventory_hostname }} has the following IPv4 addresses {{ ansible_all_ipv4_addresses }}"
+      when: ansible_default_ipv4.gateway is defined
+
+    # execute command and save result (including stdout and stderr) to a variable
+    - shell: /usr/bin/uptime
+      register: result
+    # print variable
+    - debug: var=result
+```
+
+- To enable logging set the `log_path` in your `ansible.cfg` file.
+
 - To list the tasks that would be executed by an `ansible-playbook` command add the `--list-tasks` option.
 
 - To list the hosts that would be affected by an `ansible-playbook` command add the `--list-hosts` option. Especially useful when using the `--limit` option to limit to execution on a group of hosts.
-
-- To enable logging set the `log_path` in your `ansible.cfg` file. [^ansible_log]
-
-[^ansible_log]: <http://stackoverflow.com/questions/18794808/how-do-i-get-logs-details-of-ansible-playbook-module-executions>
 
 - To check if your nodes are reachable execute `ansible all -m ping` (install the `sshpass` package on your host system and add the `--ask-pass` option if you didn't propagate an SSH keypair).
 
