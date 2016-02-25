@@ -414,7 +414,7 @@ Using Vagrant is very convenient when testing environments and provisioning. But
 A more interesting way to fix this is by running Ansible on the localhost. While not particular useful in this case the approach used can be adapted for managing keys in other situations. And it's also a good excuse to flex Ansible's muscle.
 The files for this example are in the `refresh_ssh_public_keys` directory.
 
-The inventory file. It isn't strictly required but does fix a warning.
+In this case the use of an inventory file isn't strictly required but using one prevents a warning. The inventory file:
 ```dosini
 localhost              ansible_connection=local
 ```
@@ -443,7 +443,7 @@ The playbook:
   tasks:
     - name: Check if the known hosts file exists
       file: "path={{ known_hosts_file }} state=file"
-      # Save the task output/report/log to a variable
+      # Save the task output/report/log to a register
       register: file_check
       # We ignore errors here because we'll handle them in the next task
       ignore_errors: true
@@ -453,7 +453,7 @@ The playbook:
       # Use Jinja2 template filters to check if the field 'failed' exists
       when: file_check | failed
 
-      # Given that we'll re-use the list it's convenient to save it to a register
+      # Don't Repeat Yourself. Save the target hosts list to a register
     - name: Dummy task to build list of nodes for ssh fingerprint
       assert: { that: "'a' == 'a'" }
       # create a custom sequence and save it to register target_hosts
@@ -497,7 +497,7 @@ ansible-playbook -i localhost.ini main.yml
 This section demonstrates the creation of a role for nginx. 
 The purpose of this example is to give an idea of what role creation involves as well as to further exemplify playbooks. It doesn't aim to be a fully-fledged role, especially given that there are already very complete and versatile recipes available at Ansible Galaxy.
 
-The nginx role structure:
+The nginx role file structure:
 ```bash
 website
 ├── ansible.cfg                     # Ansible configuration file
@@ -525,13 +525,20 @@ website
 └── Vagrantfile                     # Symbolic link to example_nginx.Vagrantfile
 ```
 
+The `ansible.cfg` file was edited from the original file to include these settings:
+```dosini
+gathering = smart
+log_path = /tmp/ansible.log
+```
+
+
 The `example_nginx.ini` inventory file includes all webservers:
 ```bash
 [webservers]
 default ansible_ssh_host=192.168.22.51 ansible_ssh_port=22 ansible_ssh_user='vagrant' ansible_ssh_private_key_file='./.vagrant/machines/default/virtualbox/private_key'
 ```
 
-The "main" playbook `example_nginx.yml` installs nginx and deploys the website on all webservers, after executing the common role.
+The "main" playbook `example_nginx.yml` installs `nginx` and deploys the website on all webservers, after executing the `common` role. And in order to do so it switches to the root user via the `become` and `become_method` directives.
 ```yaml
 ---
 - name: deploy website
@@ -544,12 +551,15 @@ The "main" playbook `example_nginx.yml` installs nginx and deploys the website o
     - nginx
 ```
 
-The variables for the `webservers` (the variables list `all` doesn't have anything yet):
+The variables for the `webservers`:
 ```yaml
 ---
 website_root: /var/www/mysite
 website_port: 80
 ```
+The variables list `all` doesn't have anything yet.
+
+
 
 The `common` role includes any operations that may be shared by more than one role:
 ```yaml
@@ -597,9 +607,17 @@ The main playbook for this role is responsible for installing nginx, configuring
   notify: restart nginx
 ```
 
+Several of the tasks notify a handler task that is responsible for restarting the nginx service. It's defined in the `handlers/main.yml` as follows:
+```yaml
+---
+- name: restart nginx
+  service: name=nginx state=restarted
+```
+
+
 Let us now look at the template files. First the `nginx.conf.j2` template.
-The first line includes a comment that will expanded through the `{{ ansible_managed }}` variable whose purpose is to alert that the file is auto-generated and should not be edited.
-The only other line of interest, in Ansible context anyway, is `{{ ansible_processor_vcpus * 2 }}` which allows optimizing the number of workers dynamically by using Ansible facts gathering.
+The first line includes a comment that will be expanded via the `{{ ansible_managed }}` variable whose purpose is to timestamp the file and also alert anyone that the file is auto-generated and should not be edited.
+The only other line of interest, in Ansible context anyway, is `{{ ansible_processor_vcpus * 2 }}` which allows optimizing the number of workers dynamically by using Ansible facts gathering and making use of the Jinja2 template arithmetic capabilities.
 ```bash
 # {{ ansible_managed }}
 
