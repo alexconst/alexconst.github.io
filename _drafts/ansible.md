@@ -349,6 +349,7 @@ To configure Ansible to your needs make a copy of the template at `$ANSIBLE_HOME
 
 # Playbook files
 
+**Overview**
 Playbooks are YAML files that describe configuration, deployment and orchestration operations to be performed on a group of nodes.
 Each *playbook* contains a list of  *plays*, and each *play* includes a list of *tasks*, and each *task* calls an Ansible module. Tasks are executed sequentially according to the order defined in the playbook.
 Apart from those there is also the concept of *handler* which is a task that executes at the end of a *play* (but only once) when it is triggered by any of the *tasks* (that were set to notify that handler). They are typically used to restart services and reboot the machine.
@@ -372,8 +373,32 @@ Commonly used modules:
 - `shell`: execute a command via the shell and thus making use of environment variables.
 - `command`: execute a command without invoking a shell or using environment variables.
 
+
+
+**Variables**
 Parametrization of a playbook can be done via *variables*. These can be defined in playbooks, inventories, and via the command line. A special class of variables goes by the name of *facts*, which consist on information gathered from the target node, and are particularly useful when dealing with config files that need external IP addresses or number of CPU cores. Facts are named using the following prefixes: `ansible_`, `facter_` and `ohai_`; where the first group refers to Ansible's own facts scheme, while the other two are present for convenience/migration purposes and refer respectively to Puppet and Chef fact gathering systems.
 
+Ansible also makes possible for a host to use facts from another host via `hostvars`. For example suppose your load balancer needs information about the external IP address of the machines in the *webservers* group (groups can be accessed using the `groups` variable). That can be done as follows:
+```python
+{% for host in groups['webservers'] %}
+   {{ hostvars[host]['ansible_eth0']['ipv4']['address'] }}
+{% endfor %}
+```
+Note: when using `hostvars` with Vagrant things can get a bit tricky. For it to work properly you need to have persistent fact caching enabled. To do this:
+Install redis and bindings:
+```bash
+apt-get install -y redis-server python-redis
+```
+Configure the use of redis in `ansible.cfg`:
+```ini
+gathering = smart
+fact_caching = redis
+fact_caching_timeout = 86400
+```
+
+
+
+**Secrets**
 To avoid keeping sensitive information like passwords in plaintext it's possible to use Ansible Vault to encrypt and decrypt secrets. It basically works like this:
 ```bash
 # set your editor
@@ -387,6 +412,11 @@ ansible-vault create $vaultfile
 ansible-vault edit $vaultfile
 ```
 
+
+
+
+
+**Roles**
 There is one final concept that one should be aware and it regards reusability. Ansible makes possible for a playbook to `include` other playbooks or `roles`.
 Roles are a collection of *playbooks* that act as reusable building blocks. The file structure of a role can look something like this:
 ```bash
@@ -410,7 +440,18 @@ The [Ansible Galaxy](https://galaxy.ansible.com/) is a community driven website 
 Because the best way to understand playbooks is via examples the next sections will do just that. But be sure to read the [Best Practices](http://docs.ansible.com/ansible/playbooks_best_practices.html) guide first, as it will help making the most out of the playbooks and Ansible.
 
 
-# Example 1: SSH keys
+
+
+
+
+
+
+
+
+
+
+
+# Example 1: SSH known_hosts management
 
 Using Vagrant is very convenient when testing environments and provisioning. But with each `vagrant up` the SSH fingerprints at `$HOME/.ssh/know_hosts` also get updated which can lead to errors when provisioning. While this can be a deterrent for MitM attacks it becomes a nuisance when testing things out in a local environment since it requires intervention with each new deploy, namely by editing `known_hosts` or running `ssh-keygen -R $hosts`.
 A more interesting way to fix this is by running Ansible on the localhost. While not particular useful in this case the approach used can be adapted for managing keys in other situations. And it's also a good excuse to flex Ansible's muscle.
@@ -494,7 +535,7 @@ ansible-playbook -i localhost.ini main.yml
 
 
 
-# Example 2: webserver
+# Example 2: nginx webserver
 
 This section demonstrates the creation of a role for nginx. 
 The purpose of this example is to give an idea of what role creation involves as well as to further exemplify playbooks. It doesn't aim to be a fully-fledged role, especially given that there are already very complete and versatile recipes available at Ansible Galaxy.
@@ -687,7 +728,6 @@ The last template used in this role shows some of the facts available:
 <p style="text-indent: 5em;">eth0: {{ ansible_eth0.ipv4.address }}</p>
 <p style="text-indent: 5em;">eth1: {{ ansible_eth1.ipv4.address }}</p>
 </html>
-
 ```
 
 
@@ -720,8 +760,7 @@ http://localhost:8080/
 
 
 
-
-# Example 3: load balancer
+# Example 3: HAProxy load balancer
 
 In this example we deploy 2 nginx webservers and 1 HAProxy reverse proxy for load balancing.
 
@@ -819,7 +858,25 @@ ERROR: `ERROR: "Forbidden", while: getting RDS instances%` or `ERROR: "Forbidden
 PROBLEM: the AWS credentials you're using do not have access to AWS RDS and/or ElastiCache
 SOLUTION: edit your Ansible `ec2.ini` to have `rds = False` and/or `elasticache = False`
 
+- Ansible fails to read facts from `hostvars`
+ERROR: `"AnsibleUndefinedVariable: 'dict object' has no attribute 'ansible_eth1'"`
+PROBLEM: Vagrant runs provisioning for each machine independently which means that each machine is unaware of the other ones, much less of their facts.
+SOLUTION: enable `fact_caching` using redis. Check for the instructions in this tutorial.
+REFERENCES:
+http://blog.wjlr.org.uk/2014/12/30/multi-machine-vagrant-ansible-gotcha.html
+https://stackoverflow.com/questions/32544830/ansible-not-seeing-ansible-eth1-device
+
+
+- nginx fails to start
+ERROR: `nginx.serviceJob for nginx.service failed because the control process exited with error code. See "systemctl status nginx.service" and "journalctl -xe" for details.`
+PROBLEM: it could be there is a duplicate configuration in your nxing.conf file.
+SOLUTION: remove any duplicate options in the nginx.conf file.
 
 
 # Footnotes
+
+
+
+
+
 
