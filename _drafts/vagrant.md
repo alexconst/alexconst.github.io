@@ -567,7 +567,7 @@ Vagrant.configure(2) do |config|
 end
 ```
 Because the Vagrantfile is a valid Ruby file it's possible to define a group of machines using the language constructs. Here the web servers are iterated and configured using the `node` object.
-The settings applied to the `config` object (eg: `config.vm.box`) affect all the machines described in the Vagrantfile. While the settings applied to the `node` and `db` objects only affect the corresponding machines. With the above Vagrantfile, this will be observable when doing `vagrant up` thanks to the `provision` settings.
+The settings applied to the `config` object (eg: `config.vm.box`) affect all the machines described in the Vagrantfile. While the settings applied to the `node` and `db` objects only affect the corresponding machines. This will become apparent when doing `vagrant up` due to the specified shell provisioning echo commands.
 
 To use the environment:
 ```bash
@@ -588,7 +588,19 @@ ssh 192.168.33.52
 vagrant destroy -f
 ```
 
+Finally, one important thing to be aware of when using these inner config objects, is how they are evaluated/executed. Vagrant enforces an outside-in ordering, which means that "nesting level" has priority over "line location". Taking this example from the manual[^docs_multimachine]:
+```ruby
+Vagrant.configure("2") do |config|
+    config.vm.provision :shell, inline: "echo A"
+    config.vm.define :testing do |test|
+        test.vm.provision :shell, inline: "echo B"
+    end
+    config.vm.provision :shell, inline: "echo C"
+end
+```
+The outside-in ordering means the provisioners will first output "A", then "C", and finally "B". Which is counter-intuitive to what someone would expect.
 
+[^docs_multimachine]: <https://www.vagrantup.com/docs/multi-machine/>
 
 
 
