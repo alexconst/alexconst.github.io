@@ -185,13 +185,15 @@ ansible-playbook -i nodes.ini -u vagrant htop.yml --ask-pass
 
 In the examples shown above we used the `nodes.ini` inventory which only contained the IP address of the target machine. But alternatively we could have used this `vagrant.ini` inventory file instead:
 ```ini
-# assumes pwd is the Vagrant dir
-default ansible_ssh_host=192.168.22.50 ansible_ssh_port=22 ansible_ssh_user='vagrant' ansible_ssh_private_key_file='./.vagrant/machines/default/virtualbox/private_key'
+mymachine ansible_ssh_host=192.168.22.50 ansible_ssh_port=22 ansible_ssh_user='vagrant' ansible_ssh_private_key_file='./.vagrant/machines/default/virtualbox/private_key'
 ```
 Which would then simplify the command for running playbooks to this:
 ```bash
 ansible-playbook -i vagrant.ini htop.yml
 ```
+
+The first word in the `vagrant.ini` file, "mymachine", works as an hostname alias for when executing Ansible commands/playbooks; it doesn't really need to be an hostname.
+Also note that, in this particular case, because of the relative path used to specify the private SSH key, for the inventory to work it needs to be on the same directory as the Vagrantfile.
 
 
 
@@ -211,7 +213,7 @@ webserver-[01:30].example.com
 [db]
 dbserver-[a-f].example.com
 
-# This is how the Vagrant inventory file looks like for the Vagrant machine named 'default'
+# and this is how the Vagrant inventory file looks like for a 'default' Vagrant machine
 default ansible_ssh_host=127.0.0.1 ansible_ssh_port=2200 ansible_ssh_user='vagrant' ansible_ssh_private_key_file='/path/to/.vagrant/machines/default/virtualbox/private_key'
 ```
 
@@ -492,7 +494,7 @@ ansible-playbook -i localhost.ini main.yml
 
 
 
-# Example 2: nginx
+# Example 2: webserver
 
 This section demonstrates the creation of a role for nginx. 
 The purpose of this example is to give an idea of what role creation involves as well as to further exemplify playbooks. It doesn't aim to be a fully-fledged role, especially given that there are already very complete and versatile recipes available at Ansible Galaxy.
@@ -719,15 +721,9 @@ http://localhost:8080/
 
 
 
+# Example 3: load balancer
 
-
-
-
-
-
-# Example 3: webservers and load balancer
-
-
+In this example we deploy 2 nginx webservers and 1 HAProxy reverse proxy for load balancing.
 
 
 
