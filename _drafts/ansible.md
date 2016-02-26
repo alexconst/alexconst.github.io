@@ -764,6 +764,19 @@ http://localhost:8080/
 
 In this example we deploy 2 nginx webservers and 1 HAProxy reverse proxy for load balancing.
 
+But before we go into it I just want to point that the `example_haproxy.(ini|yml|Vagrantfile)` set was created as a draft to this example. However the following Vagrantfile snippet is worth quoting since it automates the whole provisioning process (ie, no need to run ansible-playbook after vagrant up).
+```ruby
+  # provisioning using Ansible
+  config.vm.provision "ansible" do |ansible|
+    ansible.playbook = "example_haproxy.yml"
+    ansible.inventory_path = "example_haproxy.ini"
+    # when using an inventory file, the path to the private key must also be specified
+    # either as an argument or in the inventory file itself (which it is)
+    #ansible.raw_arguments  = [
+    #  "--private-key=./.vagrant/machines/default/virtualbox/private_key"
+    #]
+  end
+```
 
 
 
@@ -871,6 +884,12 @@ https://stackoverflow.com/questions/32544830/ansible-not-seeing-ansible-eth1-dev
 ERROR: `nginx.serviceJob for nginx.service failed because the control process exited with error code. See "systemctl status nginx.service" and "journalctl -xe" for details.`
 PROBLEM: it could be there is a duplicate configuration in your nxing.conf file.
 SOLUTION: remove any duplicate options in the nginx.conf file.
+
+- HAProxy doesn't log
+ERROR: actually it does log. But it logs to /var/log/syslog
+SOLUTION: if not already present then make sure `/etc/rsyslog.d/*haproxy.conf` has this line: `if $programname startswith 'haproxy' then /var/log/haproxy.log`. After that run `service rsyslog restart`.
+REFERENCES:
+https://serverfault.com/questions/645924/haproxy-logging-to-syslog/751631#751631
 
 
 # Footnotes
