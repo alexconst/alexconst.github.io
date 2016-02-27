@@ -458,7 +458,7 @@ A more interesting way to fix this is by running Ansible on the localhost. While
 The files for this example are in the `refresh_ssh_public_keys` directory.
 
 In this case the use of an inventory file isn't strictly required but using one prevents a warning. The inventory file:
-```dosini
+```ini
 localhost              ansible_connection=local
 ```
 
@@ -569,7 +569,7 @@ website
 ```
 
 The `ansible.cfg` file was edited from the original file to include these settings:
-```dosini
+```ini
 gathering = smart
 log_path = /tmp/ansible.log
 ```
@@ -717,7 +717,7 @@ server {
 }
 ```
 
-The last template used in this role shows some of the facts available:
+The last template used in this role is for the `index.html` page. It shows (static) system information using Ansible facts:
 ```html
 <html>
 <p>webserver <b>{{ ansible_hostname }}</b>:</p>
@@ -736,7 +736,7 @@ The last template used in this role shows some of the facts available:
 To deploy the website:
 ```bash
 # Pick the Vagrantfile for this example
-cp example_nginx.Vagrantfile Vagrantfile
+ln -f -s example_nginx.Vagrantfile Vagrantfile
 # Start the VM instance
 vagrant up
 
@@ -762,9 +762,7 @@ http://localhost:8080/
 
 # Example 3: HAProxy load balancer
 
-In this example we deploy 2 nginx webservers and 1 HAProxy reverse proxy for load balancing.
-
-But before we go into it I just want to point that the `example_haproxy.(ini|yml|Vagrantfile)` set was created as a draft to this example. However the following Vagrantfile snippet is worth quoting since it automates the whole provisioning process (ie, no need to run ansible-playbook after vagrant up).
+Before we start I just want to point that the `example_haproxy.(ini|yml|Vagrantfile)` set was created as a draft to this example. However the following Vagrantfile snippet is still worth mentioning since it automates the whole provisioning process (ie, no need to run ansible-playbook after vagrant up) while also showing the use of advance settings for Ansible in Vagrant.
 ```ruby
   # provisioning using Ansible
   config.vm.provision "ansible" do |ansible|
@@ -778,8 +776,251 @@ But before we go into it I just want to point that the `example_haproxy.(ini|yml
   end
 ```
 
+Now for the load balancer example.
+In this example we deploy 2 nginx webservers and 1 HAProxy reverse proxy for load balancing.
+
+Let us start by running it first:
+```bash
+# Pick the Vagrantfile for this example
+ln -f -s example_load_balanced_website.Vagrantfile Vagrantfile
+# Start the VM instances for the webservers and load balancer
+vagrant up
+
+# Refresh SSH fingerprints for the 192.168.22.5x range on the host, otherwise
+# Ansible would fail during provisioning with the message:
+# "SSH encountered an unknown error during the connection. ..."
+ansible-playbook -i ../refresh_ssh_public_keys/localhost.ini ../refresh_ssh_public_keys/main.yml
+
+# Perform the provisioning
+ansible-playbook -i example_load_balanced_website.ini example_load_balanced_website.yml
+
+# Check HAProxy stats
+http://localhost:8080/haproxy?stats
+
+# Access the website:
+http://localhost:8080/
+```
+And if you refresh the page you'll see that it gets served by a different webserver.
+
+This Vagrantfile is responsible for providing the 3 machines:
+```ruby
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure(2) do |config|
+
+  # Choose a box with VBox guest tools already installed
+  #config.vm.box = "debian/jessie64"
+  config.vm.box = "ubuntu/wily64"
+
+  # Set up hostname
+  config.vm.hostname = "ansible-nginx"
+
+  # Message shown on vagrant up
+  config.vm.post_up_message = "After provisioning check the website at http://localhost:8080/"
+
+  # Share an additional folder with the guest VM.
+  host_folder = ENV['HOME'] + "/home/downloads/share_vagrant"
+  guest_folder = "/shared/"
+  config.vm.synced_folder host_folder, guest_folder
+
+  # Fine tune the virtualbox VM
+  config.vm.provider "virtualbox" do |vb|
+    vb.customize [
+      "modifyvm", :id,
+      "--cpus", "2",
+      "--cpuexecutioncap", "50",
+      "--memory", "512",
+    ]
+  end
+
+  # fix annoyance, http://foo-o-rama.com/vagrant--stdin-is-not-a-tty--fix.html
+  config.vm.provision "fix-no-tty", type: "shell" do |s|
+    s.privileged = false
+    s.inline = "sudo sed -i '/tty/!s/mesg n/tty -s \\&\\& mesg n/' /root/.profile"
+  end
+  # fix annoyance, http://serverfault.com/questions/500764/dpkg-reconfigure-unable-to-re-open-stdin-no-file-or-directory
+  config.vm.provision "shell", inline: "echo 'export DEBIAN_FRONTEND=noninteractive' >> /root/.profile"
+  config.vm.provision "shell", inline: "for user in /home/*; do echo 'export DEBIAN_FRONTEND=noninteractive' >> $user/.profile; done"
 
 
+  #####################################
+  # multi-machine environment specific
+  #####################################
+
+  # web servers
+  (1..2).each do |i|
+    config.vm.define "web#{i}" do |web|
+      web.vm.hostname = "web#{i}"
+      # Assign a static IP to the guest
+      web.vm.network :private_network, ip: "192.168.22.5#{i}"
+      # Create a forwarded port mapping
+      web.vm.network "forwarded_port", guest: 80, host: "808#{i}"
+      # web server specific provisioning
+      web.vm.provision :shell, inline: "echo 'Web Server #{web.vm.hostname} reporting for duty.'"
+    end
+  end
+
+  # lb server
+  config.vm.define "lb" do |lb|
+    lb.vm.hostname = "lb"
+    # Assign a static IP to the guest
+    lb.vm.network :private_network, ip: "192.168.22.50"
+    # Create a forwarded port mapping
+    lb.vm.network "forwarded_port", guest: 80, host: "8080"
+    # override default settings
+    lb.vm.provider "virtualbox" do |vb|
+      vb.memory = "256"
+    end
+    # lb server specific provisioning
+    lb.vm.provision :shell, inline: "echo 'Load Balancer #{lb.vm.hostname} ready to distribute workload.'"
+  end
+
+end
+```
+After the provision finishes it's then possible to ssh to the different machines using `vagrant ssh $machine_name`, as well as running the playbook.
+The main playbook `example_load_balanced_website.yml` has two plays. The first deploys the webservers and the second the load balancer.
+```yaml
+---
+- name: deploy webservers
+  hosts: webservers
+  become: yes
+  become_method: sudo
+  roles:
+    - common
+    - nginx
+
+- name: deploy loadbalancer
+  hosts: lbservers
+  become: yes
+  become_method: sudo
+  roles:
+    - common
+    - haproxy
+```
+
+The inventory file `example_load_balanced_website.ini` defines the `lbservers` and `webservers` host groups:
+```ini
+[lbservers]
+lb ansible_ssh_host=192.168.22.50 ansible_ssh_port=22 ansible_ssh_user='vagrant' ansible_ssh_private_key_file='./.vagrant/machines/lb/virtualbox/private_key'
+
+[webservers]
+web1 ansible_ssh_host=192.168.22.51 ansible_ssh_port=22 ansible_ssh_user='vagrant' ansible_ssh_private_key_file='./.vagrant/machines/web1/virtualbox/private_key'
+web2 ansible_ssh_host=192.168.22.52 ansible_ssh_port=22 ansible_ssh_user='vagrant' ansible_ssh_private_key_file='./.vagrant/machines/web2/virtualbox/private_key'
+```
+
+And the config file `ansible.cfg` enables persistent caching using redis so that we can use the `hostvars` magic variable when configuring load balancing:
+```ini
+gathering = smart
+fact_caching = redis
+fact_caching_timeout = 86400
+```
+
+The other variables used are defined in `group_vars/all`, `group_vars/webservers`, and `group_vars/lbservers`:
+```yaml
+---
+website_port: 80
+```
+
+```yaml
+---
+website_root: /var/www/mysite
+# website_port is declared in the all group_vars since it's also used by the LB
+```
+
+```yaml
+---
+backend_name: backend_lbservers
+daemon_name: proxy_daemon
+balance: roundrobin
+lb_listen_port: 80
+```
+
+The haproxy main playbook installs the package and notifies the handlers to restart the needed services:
+```yaml
+---
+# Install latest version of haproxy package.
+# Cache is not updated here since that is done in the common role.
+- name: install latest haproxy
+  apt: name=haproxy state=latest update_cache=no
+  notify: restart haproxy
+
+# Enable haproxy to start at boot.
+- name: enable haproxy
+  service: name=haproxy enabled=yes
+
+# Configure haproxy settings.
+- name: configure haproxy settings
+  template: src=haproxy.cfg.j2 dest=/etc/haproxy/haproxy.cfg
+  # we need to restart rsyslog to enable haproxy logging to /var/log/haproxy.log
+  # https://serverfault.com/questions/645924/haproxy-logging-to-syslog/751631#751631
+  notify:
+    - restart rsyslog
+    - restart haproxy
+```
+
+The playbook for the haproxy handlers has no surprises (that is if you read the comments in the previous playbook):
+```yaml
+---
+- name: restart haproxy
+  service: name=haproxy state=restarted
+
+- name: restart rsyslog
+  service: name=rsyslog state=restarted
+```
+
+Finally in the template for `haproxy.cfg` we use Ansible facts to configure the load balancing:
+```ini
+# {{ ansible_managed }}
+
+global
+        log /dev/log    local0
+        log /dev/log    local1 notice
+        chroot /var/lib/haproxy
+        stats socket /run/haproxy/admin.sock mode 660 level admin
+        stats timeout 30s
+        user haproxy
+        group haproxy
+        daemon
+
+defaults
+        log     global
+        mode    http
+        option  httplog
+        option  dontlognull
+        timeout connect 5000
+        timeout client  50000
+        timeout server  50000
+        errorfile 400 /etc/haproxy/errors/400.http
+        errorfile 403 /etc/haproxy/errors/403.http
+        errorfile 408 /etc/haproxy/errors/408.http
+        errorfile 500 /etc/haproxy/errors/500.http
+        errorfile 502 /etc/haproxy/errors/502.http
+        errorfile 503 /etc/haproxy/errors/503.http
+        errorfile 504 /etc/haproxy/errors/504.http
+
+        # enable stats
+        stats enable
+        stats uri /haproxy?stats
+
+
+backend {{ backend_name }}
+    # set mode to HTTP
+    mode http
+    # set balancing algorithm for distributing requests
+    balance     {{ balance }}
+    # get list of machines in the lbservers group
+    {% for host in groups['lbservers'] %}
+        # each LB will listen for connections on lb_listen_port on all interfaces
+        listen {{ daemon_name }} *:{{ lb_listen_port }}
+    {% endfor %}
+    # get list of machines in the webservers group
+    {% for host in groups['webservers'] %}
+        # requests will be forwarded to the webservers' WAN network interface (eth1) on port website_port
+        # the check option enables health checks by HAProxy
+        server {{ host }} {{ hostvars[host]['ansible_eth1'].ipv4.address }}:{{ website_port }} check
+    {% endfor %}
+```
 
 
 
