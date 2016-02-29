@@ -9,7 +9,7 @@ tags:       tutorial ansible vagrant
 
 # About
 
-This is a concise tutorial on Ansible. It starts by giving a description on what Ansible is and what it is used for, provides instructions how to install it, and gives an overview on its playbooks. Then goes into more detail on the files used by Ansible: inventory, configuration, and playbooks. It finalizes by showcasing multiple use cases.
+This is a concise tutorial on Ansible. It starts by giving a description on what Ansible is and what it is used for, provides instructions how to install it, and gives an overview on its playbooks. Then goes into more detail on the files used by Ansible: inventory, configuration, and playbooks. It finalizes by showcasing multiple use cases. It doesn't cover everything, since to do so would make it look like the manual, but it is broad and deep enough to give a jump start to using it.
 [Vagrant](vagrant.md) will be used in this tutorial since it provides us a convenient way to make development environments easily available for testing Ansible.
 
 
@@ -30,13 +30,13 @@ Other well known provisioning tools include: Puppet (2005), Chef (2008) and Salt
 There are multiple discussions[^disc1] [^disc2] [^disc3] on this topic but with no clear winner standing out. The main reasons for this being related with the maturity of each tool, its prevalence inside a company, and the pros and cons that each tool brings. Nonetheless, Chef does tend to be well regarded (and a better alternative than its Ruby counterpart Puppet), and Ansible does tend to be recommended for new users or installations.
 
 The main reasons for Ansible:
-- excellent documentation,
-- easy learning curve (due to the use of YAML, Python and its documentation),
-- declarative paradigm (configuration is done as data via YAML files not code),
-- agent-less architecture (only SSH is used, so no potential vulnerable agents get installed),
-- batteries included (more than 400 modules),
-- use of Jinja2 templating language (for variables and loop contructs), and
-- Ansible Galaxy (a repository with thousands of Ansible recipes which you can customize to your needs).
+- excellent [documentation](https://docs.ansible.com/ansible/index.html),
+- easy learning curve: due to the use of YAML, Python and its documentation,
+- declarative paradigm: configuration is done as data via YAML files not code,
+- agent-less architecture: only SSH is used, so no potential vulnerable agents get installed,
+- batteries included: almost 500 [modules](https://docs.ansible.com/ansible/list_of_all_modules.html),
+- use of [Jinja2 templating](http://jinja.pocoo.org/docs/dev/templates/) language: for variables and loop constructs, and
+- [Ansible Galaxy](https://galaxy.ansible.com/): a repository with thousands of Ansible recipes which you can customize to your needs.
 
 
 
@@ -71,7 +71,10 @@ sudo apt-get install -y sshpass
 # set up a default inventory file
 echo "" >> ~/ansible_hosts
 
+
 # add these lines to your shell rc file
+# (unfortunately here documents break syntax highlight)
+# cat <<'EOF' >> "$your_shellrc_file"
 export ANSIBLE_INVENTORY="$HOME/ansible_hosts"
 export ANSIBLE_HOME="/usr/local/src/ansible"
 alias env-ansible="source $ANSIBLE_HOME/hacking/env-setup"
@@ -79,8 +82,10 @@ alias env-ansible="source $ANSIBLE_HOME/hacking/env-setup"
 export ANSIBLE_EC2="$ANSIBLE_HOME/contrib/inventory/ec2.py"
 alias ansible-inv-ec2="$ANSIBLE_EC2"
 export EC2_INI_PATH="ec2.ini"
+# EOF
 
-# to use ansible
+
+# to use ansible, set its environment
 env-ansible
 
 
@@ -140,7 +145,7 @@ In *ad-hoc mode* commands are executed from the command line.
 Examples:
 ```bash
 # "ping" `all` nodes in the `nodes.ini` inventory file using the `vagrant` remote user
-# the `ping` module tries to connect to a host, verify a usable python and return pong on success
+# the `ping` module tries to login to a host, verify a usable python and return pong on success
 ansible -m ping -u vagrant -i nodes.ini all --ask-pass
 
 # collect system information (aka gathering facts)
@@ -231,7 +236,7 @@ host2
 host2
 host3
 
-# define a group of groups using the 'children' keyword
+# define a group of groups named 'euroasia' using the 'children' keyword
 [euroasia:children]
 europe
 asia
@@ -253,24 +258,22 @@ oceania
 
 ## Dynamic inventory files (with AWS)
 
-Ansible also provides a way to get an inventory of hosts from third party sources, which is particularly useful when dealing with cloud providers. Ansible includes support for: AWS EC2, Digital Ocean, Google CE, Linode, OpenStack, among others. And it also allows creating one's own dynamic inventory system[^dev_dyn_inv].
+Ansible also provides a way to get an inventory of hosts from third party sources, which is particularly useful when dealing with cloud providers. Ansible includes support for: AWS EC2, Digital Ocean, Google CE, Linode, OpenStack, among others. And it even allows adding support to other sources of dynamic inventory systems[^dev_dyn_inv].
 
 [^dev_dyn_inv]: <http://docs.ansible.com/ansible/developing_inventory.html>
 
-Here follows an example of AWS EC2 dynamic inventory system (note that if you haven't already, you will need to perform the steps described in the Installation section; namely installing the needed packages and setting alias and environment variables in your shell rc file).
+Here follows an example of AWS EC2 dynamic inventory system (note that if you haven't already, you will need to perform the steps described in the [Installation section](#installation); namely installing the needed packages and setting alias and environment variables in your shell rc file).
 
 
 Get your EC2 external inventory script settings file ready:
 ```bash
-# option 1:
-# either use the default location previously set in your shell rc file
-# which should simply be "ec2.ini" (thus pointing to the current dir)
+# option 1: either use the default location previously set in your shell rc file
+# this next line should simply echo "ec2.ini" (thus pointing to the current dir)
 echo $EC2_INI_PATH
-# and copy the provided ec2.ini to the local dir
+# copy the provided ec2.ini to the local dir
 cp $ANSIBLE_HOME/contrib/inventory/ec2.ini .
 
-# option 2:
-# or set the path to your ec2 ini file
+# option 2: or set the path to your ec2 ini file
 export EC2_INI_PATH="/path/to/ec2.ini"
 ```
 
@@ -312,7 +315,7 @@ AWS_PROFILE="dev"  ansible-playbook -i "$ANSIBLE_EC2" -u "$instance_user" --priv
 ```
 
 A few other points worth mentioning:
-- the default `ec2.ini` is configured to run Ansible from outside AWS EC2, however this is not the most efficient way to manage those instances.
+- the default `ec2.ini` is configured to run Ansible from outside AWS EC2, however this is not the most efficient way to manage those instances. The ideal would be to have an Ansible management instance running in EC2 as well.
 - when running Ansible from within AWS EC2 then using internal DNS names and IP addresses makes more sense. This can be configured via the `destination_variable` setting. Which is actually required to access the instances when dealing with a private subnet inside a VPC.
 - when running a private subnet inside a VPC then those instances will only be listed in the inventory if the `vpc_destination_variable` is set to `private_ip_address`.
 - when working with dynamic inventories many dynamic groups are automatically created. So an instance with an AWS tag such as `class:webserver` would load variables from a `group_vars/ec2_tag_class_webserver` variables file.
@@ -349,9 +352,11 @@ To configure Ansible to your needs make a copy of the template at `$ANSIBLE_HOME
 
 # Playbook files
 
-**Overview**
+## Overview
+
 Playbooks are YAML files that describe configuration, deployment and orchestration operations to be performed on a group of nodes.
-Each *playbook* contains a list of  *plays*, and each *play* includes a list of *tasks*, and each *task* calls an Ansible module. Tasks are executed sequentially according to the order defined in the playbook.
+Each *playbook* contains a list of  *plays*, and each *play* includes a list of `tasks` targeted at a group of `hosts`, and each *task* calls an Ansible module.
+Tasks are executed sequentially according to the order defined in the playbook, but each task is executed in parallel across `hosts`.
 Apart from those there is also the concept of *handler* which is a task that executes at the end of a *play* (but only once) when it is triggered by any of the *tasks* (that were set to notify that handler). They are typically used to restart services and reboot the machine.
 
 Commonly used entries in a playbook:
@@ -363,10 +368,10 @@ Commonly used entries in a playbook:
 - `become`: if set to `yes` the remote user will switch to root before executing the tasks.
 - `become_method`: defines the switch user method, typically it's `sudo`.
 - `tasks`: a list of tasks.
-- `task`: each tasks makes use of a module to perform an operation and eventually `notify` a handler.
-- `handlers`: a list of handlers. With each handler being executed at most once, at the end of the playbook.
+- *task*: each tasks makes use of a module to perform an operation and eventually `notify` a handler.
+- `handlers`: a list of handlers. With each handler being executed at most once, at the end of a play.
 
-Commonly used modules:
+Some commonly used modules:
 - `apt` and `yum`: package management.
 - `template`: evaluate the input Jinja2 template file and copy its result to the remote node.
 - `copy`: copy a file to the remote node.
@@ -375,8 +380,10 @@ Commonly used modules:
 
 
 
-**Variables**
-Parametrization of a playbook can be done via *variables*. These can be defined in playbooks, inventories, and via the command line. A special class of variables goes by the name of *facts*, which consist on information gathered from the target node, and are particularly useful when dealing with config files that need external IP addresses or number of CPU cores. Facts are named using the following prefixes: `ansible_`, `facter_` and `ohai_`; where the first group refers to Ansible's own facts scheme, while the other two are present for convenience/migration purposes and refer respectively to Puppet and Chef fact gathering systems.
+## Variables
+
+Parametrization of a playbook can be done via *variables*. These can be defined in playbooks, inventories, and via the command line.
+A special class of variables goes by the name of *facts*, which consist on information gathered from the target node, and are particularly useful when dealing with config files that need external IP addresses or number of CPU cores. Facts are named using the following prefixes: `ansible_`, `facter_` and `ohai_`; where the first group refers to Ansible's own facts scheme, while the other two are present for convenience/migration purposes and refer respectively to Puppet and Chef fact gathering systems.
 
 Ansible also makes possible for a host to use facts from another host via `hostvars`. For example suppose your load balancer needs information about the external IP address of the machines in the *webservers* group (groups can be accessed using the `groups` variable). That can be done as follows:
 ```python
@@ -384,12 +391,11 @@ Ansible also makes possible for a host to use facts from another host via `hostv
    {{ hostvars[host]['ansible_eth0']['ipv4']['address'] }}
 {% endfor %}
 ```
-Note: when using `hostvars` with Vagrant things can get a bit tricky. For it to work properly you need to have persistent fact caching enabled. To do this:
-Install redis and bindings:
+Note: when using `hostvars` with Vagrant things can get a bit tricky. For it to work properly you need to have persistent fact caching enabled. To do this install redis and the python bindings:
 ```bash
 apt-get install -y redis-server python-redis
 ```
-Configure the use of redis in `ansible.cfg`:
+And configure the use of redis in `ansible.cfg`:
 ```ini
 gathering = smart
 fact_caching = redis
@@ -398,8 +404,9 @@ fact_caching_timeout = 86400
 
 
 
-**Secrets**
-To avoid keeping sensitive information like passwords in plaintext it's possible to use Ansible Vault to encrypt and decrypt secrets. It basically works like this:
+## Secrets
+
+To avoid keeping sensitive information like passwords in plaintext it's possible to use Ansible Vault to encrypt and decrypt secrets using AES-256. It basically works like this:
 ```bash
 # set your editor
 export EDITOR="vim"
@@ -408,15 +415,23 @@ export EDITOR="vim"
 vaultfile="vars/main.yml"
 ansible-vault create $vaultfile
 
-# edit a file in the vault
+# to edit a file in the vault
 ansible-vault edit $vaultfile
+
+# to run a playbook with encrypted variables (either in itself or in a dependency):
+ansible-playbook $playbook.yml --ask-vault-pass
+# or if it's stored in a file (as a single line in the file):
+ansible-playbook $playbook.yml --vault-password-file $secret_file.txt
+# the path to this file can also be configured in the environment variable ANSIBLE_VAULT_PASSWORD_FILE
+
+# if the decryption process is slow, install the cryptography package
+pip install cryptography
 ```
 
 
 
+## Roles
 
-
-**Roles**
 There is one final concept that one should be aware and it regards reusability. Ansible makes possible for a playbook to `include` other playbooks or `roles`.
 Roles are a collection of *playbooks* that act as reusable building blocks. The file structure of a role can look something like this:
 ```bash
@@ -456,6 +471,8 @@ Because the best way to understand playbooks is via examples the next sections w
 Using Vagrant is very convenient when testing environments and provisioning. But with each `vagrant up` the SSH fingerprints at `$HOME/.ssh/know_hosts` also get updated which can lead to errors when provisioning. While this can be a deterrent for MitM attacks it becomes a nuisance when testing things out in a local environment since it requires intervention with each new deploy, namely by editing `known_hosts` or running `ssh-keygen -R $hosts`.
 A more interesting way to fix this is by running Ansible on the localhost. While not particular useful in this case the approach used can be adapted for managing keys in other situations. And it's also a good excuse to flex Ansible's muscle.
 The files for this example are in the `refresh_ssh_public_keys` directory.
+
+Note: this playbook will be executed locally and modify the known_hosts file in the host computer; which makes it an exception to Ansible's typical use case.
 
 In this case the use of an inventory file isn't strictly required but using one prevents a warning. The inventory file:
 ```ini
@@ -598,9 +615,13 @@ The variables for the `webservers`:
 ```yaml
 ---
 website_root: /var/www/mysite
+```
+The variables described in `all`:
+```yaml
+---
 website_port: 80
 ```
-The variables list `all` doesn't have anything yet.
+In this example the `website_port` could be in the `webservers` variables file, but in the next example this information will be required, so that is why it is being placed in a common file.
 
 
 
@@ -762,7 +783,7 @@ http://localhost:8080/
 
 # Example 3: HAProxy load balancer
 
-Before we start I just want to point that the `example_haproxy.(ini|yml|Vagrantfile)` set was created as a draft to this example. However the following Vagrantfile snippet is still worth mentioning since it automates the whole provisioning process (ie, no need to run ansible-playbook after vagrant up) while also showing the use of advance settings for Ansible in Vagrant.
+Before we start I just want to point that the `example_haproxy.(ini|yml|Vagrantfile)` set was created as a draft to this example, so it will not be approached here. However the following Vagrantfile snippet, which is part of it, is still worth mentioning since it automates the whole provisioning process (ie, no need to run ansible-playbook after vagrant up) while also showing the use of advance settings for Ansible in Vagrant.
 ```ruby
   # provisioning using Ansible
   config.vm.provision "ansible" do |ansible|
