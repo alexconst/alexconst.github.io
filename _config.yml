@@ -9,11 +9,37 @@ url: "http://yourdomain.com" # the base hostname & protocol for your site
 #twitter_username: jekyllrb
 github_username:  alexconst
 
+# Serving
+port: 4000
+host: 0.0.0.0
+
+## Build settings
+#markdown: redcarpet
+#redcarpet:
+#    extensions: [autolink, footnotes, with_toc_data]
+#highlighter: pygments
+
 # Build settings
-markdown: redcarpet
-redcarpet:
-    extensions: [autolink, footnotes, with_toc_data]
-highlighter: pygments
+# GHP only supports kramdown :(
+# https://github.com/blog/2100-github-pages-now-faster-and-simpler-with-jekyll-3-0
+markdown: kramdown
+kramdown:
+    input: GFM
+    hard_wrap: false
+    toc_levels: 1..6
+highlighter: rouge
 
 permalink: /:year/:month/:day/:title/
+
+
+
+
+#kramdown:
+#  auto_ids:       true
+#  footnote_nr:    1
+#  entity_output:  as_char
+#  toc_levels:     1..6
+#  smart_quotes:   lsquo,rsquo,ldquo,rdquo
+#  enable_coderay: false
+#
 
