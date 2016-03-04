@@ -21,12 +21,15 @@ $golden-color:      #f2a723;
 $golden-color-dark: darken($golden-color, 25%);
 $red-color:         #ff0000;
 $red-brown-color:   #963019;
+$black-color:       #000000;
 
 $text-color:        $grey-color;
 $background-color:  $brown-color;
 $brand-color:       $red-color;
 $headers-color:     $golden-color;
 $line-color:        $red-brown-color;
+
+$syntax-bg-color:   $black-color;
 
 $on-palm:           600px;
 $on-laptop:         800px;

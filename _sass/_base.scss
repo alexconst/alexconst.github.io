@@ -135,6 +135,11 @@ code {
     border-radius: 3px;
     background-color: #000;
     color: #fff;
+
+    /* Fixes problem with Rouge code blocks line numbers */
+    /*max-width: 100px;*/
+    max-width:         calc(1000px - (#{$spacing-unit} * 2));
+    max-width: -webkit-calc(1000px - (#{$spacing-unit} * 2));
 }
 
 code {

@@ -24,22 +24,31 @@ host: 0.0.0.0
 # https://github.com/blog/2100-github-pages-now-faster-and-simpler-with-jekyll-3-0
 markdown: kramdown
 kramdown:
-    input: GFM
-    hard_wrap: false
-    toc_levels: 1..6
-highlighter: rouge
+    input:              GFM
+    auto_ids:           true
+    hard_wrap:          false
+    toc_levels:         1..6
+    toc_panel:          true
+    syntax_highlighter: rouge
+
+    # Rouge Highlighter in Kramdown › http://kramdown.gettalong.org/syntax_highlighter/rouge.html
+    # span, block element options fall back to global
+    syntax_highlighter_opts:
+        # Rouge Options › https://github.com/jneen/rouge#full-options
+        css_class: 'highlight'
+        #line_numbers: true # bad idea, spans don't need linenos and would inherit this option
+        span:
+            line_numbers: false
+        block:
+            line_numbers: true
+            start_line: 1
+        inline_theme: monokai
+        # preview (some of the) color schemes:
+        #   http://vimcolors.com/
+        #   https://github.com/jneen/rouge#inline_theme-nil
+        #   https://github.com/jneen/rouge/tree/14d95cf5c4811da384092499defa05925b9e13fc/lib/rouge/themes
+
 
 permalink: /:year/:month/:day/:title/
 
-
-
-
-#kramdown:
-#  auto_ids:       true
-#  footnote_nr:    1
-#  entity_output:  as_char
-#  toc_levels:     1..6
-#  smart_quotes:   lsquo,rsquo,ldquo,rdquo
-#  enable_coderay: false
-#
 

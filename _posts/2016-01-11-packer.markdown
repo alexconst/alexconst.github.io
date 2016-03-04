@@ -7,6 +7,8 @@ tags: tutorial packer
 author: Alexandre Constantino
 ---
 
+{% include toc.md %}
+
 # What is Packer
 
 Packer is a tool for automating the creation of identical virtual
@@ -207,7 +209,7 @@ create a Vagrant box).
 Packer supports two types of variables: user variables and configuration
 template variables.
 
-``` text
+``` json
     "vm_name": "debian-802-jessie",
     "ssh_user": "{% raw %}{{env `PACKER_SSH_USER`}}{% endraw %}",
     "passwd/username={% raw %}{{user `ssh_user`}}{% endraw %} <wait>",
@@ -450,7 +452,7 @@ anything.
 
 To pass an environment variable to the provisioning scripts:
 
-``` text
+``` json
             "environment_vars": [
                 "varexample={% raw %}{{user `vm_name`}}{% endraw %}",
                 "varfoo=bar"

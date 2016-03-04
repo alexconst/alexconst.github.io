@@ -159,7 +159,7 @@ While the only mandatory section is the builders, the typical structure is as fo
 The description is self explanatory. The variables are where variables are declared and set. The builders section specify the format and the instructions on how to build an image using the different virtualization tools (eg: QEMU) and cloud platforms (eg: AWS). The provisioners define the scripts and/or playbooks for configuring the machine (eg: installing and configuring a web server). And finally the post-processors section instructs on what should be done after the image has been produced (eg: create a Vagrant box).
 
 Packer supports two types of variables: user variables and configuration template variables.
-```text
+```json
     "vm_name": "debian-802-jessie",
     "ssh_user": "{{env `PACKER_SSH_USER`}}",
     "passwd/username={{user `ssh_user`}} <wait>",
@@ -362,7 +362,7 @@ The VM specific scripts (ie: virtualbox.sh and vmware.sh) make use of the `PACKE
     ],
 ```
 To pass an environment variable to the provisioning scripts:
-```text
+```json
             "environment_vars": [
                 "varexample={{user `vm_name`}}",
                 "varfoo=bar"
