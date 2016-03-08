@@ -125,7 +125,7 @@ Other interesting plugins:
 -   vbguest: automatically keep the VirtualBox guest tools updated
     [https://github.com/dotless-de/vagrant-vbguest/](https://github.com/dotless-de/vagrant-vbguest/)
 -   mutate: convert boxes to work with different providers
-    <https://github.com/sciurus/vagrant-mutate>
+    [https://github.com/sciurus/vagrant-mutate](https://github.com/sciurus/vagrant-mutate)
 -   triggers: allow the definition of arbitrary scripts that will run on
     the host or guest before and/or after Vagrant commands
     <https://github.com/emyl/vagrant-triggers> ([related discussion at
@@ -453,7 +453,7 @@ of using shell scripts for provisioning we'll use [Ansible]({% post_url 2016-02-
 
 Install Ansible on your host machine:
 
-<http://docs.ansible.com/ansible/intro_installation.html#installing-the-control-machine>
+[http://docs.ansible.com/ansible/intro_installation.html#installing-the-control-machine](http://docs.ansible.com/ansible/intro_installation.html#installing-the-control-machine)
 
 NOTE: we are not setting an inventory file (which is basically a list of
 hosts) here since Vagrant will take care of it for us dynamically.
@@ -656,8 +656,8 @@ are iterated and configured using the `node` object.
 The settings applied to the `config` object (eg: `config.vm.box`) affect
 all the machines described in the Vagrantfile. While the settings
 applied to the `node` and `db` objects only affect the corresponding
-machines. With the above Vagrantfile, this will be observable when doing
-`vagrant up` thanks to the `provision` settings.
+machines. This will become apparent when doing `vagrant up` due to the
+specified shell provisioning echo commands.
 
 To use the environment:
 
@@ -679,6 +679,25 @@ ssh 192.168.33.52
 vagrant destroy -f
 ```
 
+Finally, one important thing to be aware of when using these inner
+config objects, is how they are evaluated/executed. Vagrant enforces an
+outside-in ordering, which means that "nesting level" has priority over
+"line location". Taking this example from the manual[^3]:
+
+``` ruby
+Vagrant.configure("2") do |config|
+    config.vm.provision :shell, inline: "echo A"
+    config.vm.define :testing do |test|
+        test.vm.provision :shell, inline: "echo B"
+    end
+    config.vm.provision :shell, inline: "echo C"
+end
+```
+
+The outside-in ordering means the provisioners will first output "A",
+then "C", and finally "B". Which is counter-intuitive to what someone
+would expect.
+
 # Other features
 
 This tutorial covers most of what there is to know about Vagrant and its
@@ -686,10 +705,10 @@ workflow. However, there are some other features which were not
 discussed but are worthwhile to be aware of. These are:
 
 -   Box catalogs  
-    Hashicorp provides a public repository for their own boxes[^3], as
+    Hashicorp provides a public repository for their own boxes[^4], as
     well as third party boxes. For private boxes you can either
     subscribe to Hashicorp's Atlas service, or roll up your sleeves and
-    set up your own box repository[^4].
+    set up your own box repository[^5].
 
 -   Certificates  
     To make the box download process secure use the appropriate
@@ -709,19 +728,19 @@ discussed but are worthwhile to be aware of. These are:
 -   Provider specific settings  
     Vagrant allows configuring additional provider specific settings as
     well as overriding existing settings using the `config.vm.provider`
-    option[^5]. These vary according to the provider but can include
+    option[^6]. These vary according to the provider but can include
     options for: choosing between headless/GUI mode, using linked
     clones, customizing the virtual hardware devices, set limits on
     processing power used, networking, etc. Some of VirtualBox specific
-    settings[^6] were used in the Vagrantfile for the GitHub Pages
+    settings[^7] were used in the Vagrantfile for the GitHub Pages
     environment, but there are many more.
 
 -   SSH settings  
     On the scenario described in this tutorial only the SSH credentials
     needed to be provided. But Vagrant allows configuring several other
     SSH related settings, such as: guest domain/IP, guest port, private
-    key, agent forward[^7], X11 forward, environment forward, pty, shell
-    and sudo settings[^8].
+    key, agent forward[^8], X11 forward, environment forward, pty, shell
+    and sudo settings[^9].
 
 # Known issues
 
@@ -729,14 +748,14 @@ Related to synced folders:
 
 -   VirtualBox shared folders has a bug related to the sendfile syscall
     that webservers typically use to serve static files. There is
-    workaround for web servers[^9] but the bug is still present (5 years
-    and counting)[^10] and therefore may manifest itself with
+    workaround for web servers[^10] but the bug is still present (5
+    years and counting)[^11] and therefore may manifest itself with
     other software. A safer approach may be switching to NFS.
 -   Performance issues may also arise with VirtualBox shared folders:
     *"In some cases the default shared folder implementations (such as
     VirtualBox shared folders) have high performance penalties. If
     you're seeing less than ideal performance with synced folders, NFS
-    can offer a solution."*[^11]
+    can offer a solution."*[^12]
 -   Vagrant supports different synced folders implementations. However
     support for symbolic links is inconsistent, so it is better
     throughly test them beforehand or to avoid them altogether.
@@ -871,21 +890,23 @@ Related to synced folders:
     take a look at the [Vagrantfile for the AWS recipe at my
     github](https://github.com/alexconst/vagrant_recipes/tree/master/blank-jessie64-aws).
 
-[^3]: [https://atlas.hashicorp.com/boxes/search](https://atlas.hashicorp.com/boxes/search)
+[^3]: [https://www.vagrantup.com/docs/multi-machine/](https://www.vagrantup.com/docs/multi-machine/)
 
-[^4]: [https://github.com/hollodotme/Helpers/blob/master/Tutorials/vagrant/self-hosted-vagrant-boxes-with-versioning.md](https://github.com/hollodotme/Helpers/blob/master/Tutorials/vagrant/self-hosted-vagrant-boxes-with-versioning.md)
+[^4]: [https://atlas.hashicorp.com/boxes/search](https://atlas.hashicorp.com/boxes/search)
 
-[^5]: [https://www.vagrantup.com/docs/providers/configuration.html](https://www.vagrantup.com/docs/providers/configuration.html)
+[^5]: [https://github.com/hollodotme/Helpers/blob/master/Tutorials/vagrant/self-hosted-vagrant-boxes-with-versioning.md](https://github.com/hollodotme/Helpers/blob/master/Tutorials/vagrant/self-hosted-vagrant-boxes-with-versioning.md)
 
-[^6]: [https://www.virtualbox.org/manual/ch08.html#vboxmanage-modifyvm](https://www.virtualbox.org/manual/ch08.html#vboxmanage-modifyvm)
+[^6]: [https://www.vagrantup.com/docs/providers/configuration.html](https://www.vagrantup.com/docs/providers/configuration.html)
 
-[^7]: Do not use agent forward, instead use proxy command.
+[^7]: [https://www.virtualbox.org/manual/ch08.html#vboxmanage-modifyvm](https://www.virtualbox.org/manual/ch08.html#vboxmanage-modifyvm)
+
+[^8]: Do not use agent forward, instead use proxy command.
     [https://heipei.github.io/2015/02/26/SSH-Agent-Forwarding-considered-harmful/](https://heipei.github.io/2015/02/26/SSH-Agent-Forwarding-considered-harmful/)
 
-[^8]: [https://www.vagrantup.com/docs/vagrantfile/ssh_settings.html](https://www.vagrantup.com/docs/vagrantfile/ssh_settings.html)
+[^9]: [https://www.vagrantup.com/docs/vagrantfile/ssh_settings.html](https://www.vagrantup.com/docs/vagrantfile/ssh_settings.html)
 
-[^9]: [https://docs.vagrantup.com/v2/synced-folders/virtualbox.html](https://docs.vagrantup.com/v2/synced-folders/virtualbox.html)
+[^10]: [https://docs.vagrantup.com/v2/synced-folders/virtualbox.html](https://docs.vagrantup.com/v2/synced-folders/virtualbox.html)
 
-[^10]: [https://www.virtualbox.org/ticket/9069](https://www.virtualbox.org/ticket/9069)
+[^11]: [https://www.virtualbox.org/ticket/9069](https://www.virtualbox.org/ticket/9069)
 
-[^11]: [https://docs.vagrantup.com/v2/synced-folders/nfs.html](https://docs.vagrantup.com/v2/synced-folders/nfs.html)
+[^12]: [https://docs.vagrantup.com/v2/synced-folders/nfs.html](https://docs.vagrantup.com/v2/synced-folders/nfs.html)
