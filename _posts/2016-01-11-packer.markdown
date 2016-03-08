@@ -213,7 +213,7 @@ template variables.
     "vm_name": "debian-802-jessie",
     "ssh_user": "{% raw %}{{env `PACKER_SSH_USER`}}{% endraw %}",
     "passwd/username={% raw %}{{user `ssh_user`}}{% endraw %} <wait>",
-    "preseed/url=http://{% raw %}{{ .HTTPIP }}{% endraw %}:{% raw %}{{ .HTTPPort }}{% endraw %}/preseed.cfg <wait>",
+    "preseed/url=http://{% raw %}{{ .HTTPIP }}:{{ .HTTPPort }}{% endraw %}/preseed.cfg <wait>",
 ```
 
 User variables can only be declared in the variables section and its
@@ -222,9 +222,9 @@ And in the second one the `ssh_user` variable value is set according to
 the shell environment variable `PACKER_SSH_USER`.  
 The third line shows how to use a previously declared variable.  
 And the last line shows the use of configuration template variables,
-which are in the form `{% raw %}{{ Varname }}{% endraw %}` or `{% raw %}{{ .Varname }}{% endraw %}`, and are
+which are in the form `{% raw %}{{ Varname }}` or `{{ .Varname }}{% endraw %}`, and are
 special variables filled by Packer automatically. In this case the
-`{% raw %}{{ .HTTPIP }}{% endraw %}` and `{% raw %}{{ .HTTPPort }}{% endraw %}` will be set by Packer with the
+`{% raw %}{{ .HTTPIP }}` and `{{ .HTTPPort }}{% endraw %}` will be set by Packer with the
 information about its own local web server and then supplied to the
 guest OS during the installation process.
 
@@ -282,7 +282,7 @@ just a pattern that I use in rsync for skipping files during backups.
             "boot_command": [
                 "<esc><wait>",
                 "install <wait>",
-                "preseed/url=http://{% raw %}{{ .HTTPIP }}{% endraw %}:{% raw %}{{ .HTTPPort }}{% endraw %}/preseed.cfg <wait>",
+                "preseed/url=http://{% raw %}{{ .HTTPIP }}:{{ .HTTPPort }}{% endraw %}/preseed.cfg <wait>",
                 "debian-installer={% raw %}{{user `locale`}}{% endraw %} <wait>",
                 "auto <wait>",
                 "locale={% raw %}{{user `locale`}}{% endraw %} <wait>",
@@ -314,7 +314,7 @@ just a pattern that I use in rsync for skipping files during backups.
             "ssh_port": "{% raw %}{{user `ssh_port`}}{% endraw %}",
             "ssh_wait_timeout": "{% raw %}{{user `ssh_wait_timeout`}}{% endraw %}",
             "shutdown_command": "echo '{% raw %}{{user `ssh_pass`}}{% endraw %}' | sudo -S shutdown -P now",
-            "output_directory": "{% raw %}{{user `outputs_dir`}}{% endraw %}/{% raw %}{{user `vm_name`}}{% endraw %}_{% raw %}{{build_name}}{% endraw %}/"
+            "output_directory": "{% raw %}{{user `outputs_dir`}}/{{user `vm_name`}}_{{build_name}}{% endraw %}/"
         },
 ```
 
@@ -360,9 +360,9 @@ here) but could have been omitted instead.
             "hard_drive_interface": "ide",
             "iso_interface": "ide",
             "vboxmanage": [
-                [ "modifyvm", "{% raw %}{{.Name}}{% endraw %}", "--cpus", "{% raw %}{{user `cores`}}{% endraw %}" ],
-                [ "modifyvm", "{% raw %}{{.Name}}{% endraw %}", "--memory", "{% raw %}{{user `memory`}}{% endraw %}" ],
-                [ "modifyvm", "{% raw %}{{.Name}}{% endraw %}", "--vram", "{% raw %}{{user `vram`}}{% endraw %}" ]
+                [ "modifyvm", "{% raw %}{{.Name}}", "--cpus", "{{user `cores`}}{% endraw %}" ],
+                [ "modifyvm", "{% raw %}{{.Name}}", "--memory", "{{user `memory`}}{% endraw %}" ],
+                [ "modifyvm", "{% raw %}{{.Name}}", "--vram", "{{user `vram`}}{% endraw %}" ]
             ],
         },
         {
@@ -428,7 +428,7 @@ anything.
         {
             "type": "shell",
             "only": ["jessie-qemu", "jessie-vboxiso", "jessie-vmwareiso"],
-            "execute_command": "echo '{% raw %}{{user `ssh_pass`}}{% endraw %}' | {% raw %}{{.Vars}}{% endraw %} sudo -E -S bash '{% raw %}{{.Path}}{% endraw %}'",
+            "execute_command": "echo '{% raw %}{{user `ssh_pass`}}' | {{.Vars}} sudo -E -S bash '{{.Path}}{% endraw %}'",
             "scripts": [
                 "scripts/base.sh",
                 "scripts/vagrant.sh",
@@ -442,7 +442,7 @@ anything.
         {
             "type": "shell",
             "only": ["jessie-awsebs"],
-            "execute_command": "{% raw %}{{.Vars}}{% endraw %} sudo -E -S bash '{% raw %}{{.Path}}{% endraw %}'",
+            "execute_command": "{% raw %}{{.Vars}} sudo -E -S bash '{{.Path}}{% endraw %}'",
             "scripts": [
                 "scripts/cloud.sh"
             ]
@@ -472,7 +472,7 @@ can also be used to upload an image to an endpoint.
             "only": ["jessie-vboxiso"],
             "keep_input_artifact": true,
             "compression_level": 9,
-            "output": "{% raw %}{{user `outputs_dir`}}{% endraw %}/{% raw %}{{user `vm_name`}}{% endraw %}_{% raw %}{{.BuildName}}{% endraw %}.box"
+            "output": "{% raw %}{{user `outputs_dir`}}/{{user `vm_name`}}_{{.BuildName}}{% endraw %}.box"
         }
     ]
 }

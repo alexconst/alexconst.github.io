@@ -638,7 +638,7 @@ The playbook:
         path="{% raw %}{{known_hosts_file}}{% endraw %}"
         host="{% raw %}{{item}}{% endraw %}"
         # Preprocess data in register, using Jinja2 templates, in order to allow
-        # easy access via {% raw %}{{item}}{% endraw %} instead of {% raw %}{{item.item}}{% endraw %}
+        # easy access via {% raw %}{{item}} instead of {{item.item}}{% endraw %}
       with_items: "{% raw %}{{ target_hosts.results | map(attribute='item') | list }}{% endraw %}"
 
     - name: Add SSH fingerprints if the node is online
@@ -649,7 +649,7 @@ The playbook:
         state=present
         path="{% raw %}{{known_hosts_file}}{% endraw %}"
         host="{% raw %}{{item}}{% endraw %}"
-        key="{% raw %}{{ lookup('pipe', 'ssh-keyscan -H -T 1 {% raw %}{{item}}{% endraw %}') }}{% endraw %}"
+        key="{% raw %}{{ lookup('pipe', 'ssh-keyscan -H -T 1 {{item}}') }}{% endraw %}"
       with_items: "{% raw %}{{ target_hosts.results | map(attribute='item') | list }}{% endraw %}"
       ignore_errors: yes
 ```
@@ -884,8 +884,8 @@ shows (static) system information using Ansible facts:
 ``` html
 <html>
 <p>webserver <b>{% raw %}{{ ansible_hostname }}{% endraw %}</b>:</p>
-<p style="text-indent: 5em;">system: {% raw %}{{ ansible_lsb.description }}{% endraw %} running kernel {% raw %}{{ ansible_kernel }}{% endraw %}</p>
-<p style="text-indent: 5em;">CPU: {% raw %}{{ ansible_processor_vcpus }}{% endraw %} vCPUs at {% raw %}{{ ansible_processor[1] }}{% endraw %}</p>
+<p style="text-indent: 5em;">system: {% raw %}{{ ansible_lsb.description }} running kernel {{ ansible_kernel }}{% endraw %}</p>
+<p style="text-indent: 5em;">CPU: {% raw %}{{ ansible_processor_vcpus }} vCPUs at {{ ansible_processor[1] }}{% endraw %}</p>
 <p style="text-indent: 5em;">RAM: {% raw %}{{ ansible_memtotal_mb }}{% endraw %} MiB</p>
 <p style="text-indent: 5em;">disk: {% raw %}{{ (ansible_mounts[0].size_total/1024/1024/1024)|int }}{% endraw %} GiB</p>
 <p style="text-indent: 5em;">eth0: {% raw %}{{ ansible_eth0.ipv4.address }}{% endraw %}</p>
@@ -1195,13 +1195,13 @@ backend {% raw %}{{ backend_name }}{% endraw %}
     # get list of machines in the lbservers group
     {% for host in groups['lbservers'] %}
         # each LB will listen for connections on lb_listen_port on all interfaces
-        listen {% raw %}{{ daemon_name }}{% endraw %} *:{% raw %}{{ lb_listen_port }}{% endraw %}
+        listen {% raw %}{{ daemon_name }} *:{{ lb_listen_port }}{% endraw %}
     {% endfor %}
     # get list of machines in the webservers group
     {% for host in groups['webservers'] %}
         # requests will be forwarded to the webservers' WAN network interface (eth1) on port website_port
         # the check option enables health checks by HAProxy
-        server {% raw %}{{ host }}{% endraw %} {% raw %}{{ hostvars[host]['ansible_eth1'].ipv4.address }}{% endraw %}:{% raw %}{{ website_port }}{% endraw %} check
+        server {% raw %}{{ host }} {{ hostvars[host]['ansible_eth1'].ipv4.address }}:{{ website_port }}{% endraw %} check
     {% endfor %}
 ```
 
@@ -1225,7 +1225,7 @@ backend {% raw %}{{ backend_name }}{% endraw %}
   # Debug examples
   tasks:
     # print list of ipv4 addresses when the machine has a gateway defined
-    - debug: msg="System {% raw %}{{ inventory_hostname }}{% endraw %} has the following IPv4 addresses {% raw %}{{ ansible_all_ipv4_addresses }}{% endraw %}"
+    - debug: msg="System {% raw %}{{ inventory_hostname }} has the following IPv4 addresses {{ ansible_all_ipv4_addresses }}{% endraw %}"
       when: ansible_default_ipv4.gateway is defined
 
     # execute command and save result (including stdout and stderr) to a variable
