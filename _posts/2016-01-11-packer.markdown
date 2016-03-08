@@ -34,11 +34,11 @@ The outputs produced by Packer (eg: AWS AMI IDs; VMware image files) are
 called artifacts.
 
 **Download Packer:**  
-<https://www.packer.io/downloads.html>  
-<https://github.com/mitchellh/packer>
+[https://www.packer.io/downloads.html](https://www.packer.io/downloads.html)  
+[https://github.com/mitchellh/packer](https://github.com/mitchellh/packer)
 
 **Packer recipe used for this tutorial:**  
-<https://github.com/alexconst/packer_recipes/tree/master/debian-8-jessie-amd64>
+[https://github.com/alexconst/packer_recipes/tree/master/debian-8-jessie-amd64](https://github.com/alexconst/packer_recipes/tree/master/debian-8-jessie-amd64)
 
 # Understanding the magic
 
@@ -626,8 +626,8 @@ speed up the process.
     ERROR: Error launching VM: Qemu failed to start. Please run with
     logs to get more info.  
     REFERENCES:  
-    <https://groups.google.com/forum/#!topic/packer-tool/4ftu7_5M1s0>  
-    <https://github.com/mitchellh/packer/issues/1387#issuecomment-51250622>  
+    [https://groups.google.com/forum/#!topic/packer-tool/4ftu7_5M1s0](https://groups.google.com/forum/#!topic/packer-tool/4ftu7_5M1s0)  
+    [https://github.com/mitchellh/packer/issues/1387#issuecomment-51250622](https://github.com/mitchellh/packer/issues/1387#issuecomment-51250622)  
     PROBLEM: the qemu command version is missing the -display option  
     SOLUTION 1: upgrade  
     SOLUTION 2: use "headless": true  
@@ -644,7 +644,7 @@ speed up the process.
 -   qemu incorrect driver  
     ERROR: Qemu stderr: qemu-kvm: -device virtio-net,netdev=user.0:
     Parameter 'driver' expects a driver name  
-    <https://www.redhat.com/archives/libvirt-users/2011-March/msg00068.html>  
+    [https://www.redhat.com/archives/libvirt-users/2011-March/msg00068.html](https://www.redhat.com/archives/libvirt-users/2011-March/msg00068.html)  
     PROBLEM: either incorrect device name or it's not enabled in the
     distro (maybe during compilation). Update the device name to
     something supported: /usr/libexec/qemu-kvm -device ? 2&gt;&1 | grep
@@ -661,14 +661,14 @@ speed up the process.
     `virtio-net` has the best performance. So this workaround is not
     optimal.  
     REFERENCES:  
-    <http://serverfault.com/questions/362038/qemu-kvm-virtual-machine-virtio-network-freeze-under-load>  
-    <http://wiki.qemu.org/Documentation/Networking>  
-    <https://en.wikibooks.org/wiki/QEMU/Devices/Network>
+    [http://serverfault.com/questions/362038/qemu-kvm-virtual-machine-virtio-network-freeze-under-load](http://serverfault.com/questions/362038/qemu-kvm-virtual-machine-virtio-network-freeze-under-load)  
+    [http://wiki.qemu.org/Documentation/Networking](http://wiki.qemu.org/Documentation/Networking)  
+    [https://en.wikibooks.org/wiki/QEMU/Devices/Network](https://en.wikibooks.org/wiki/QEMU/Devices/Network)
 
 -   ssh handshake failure  
     ERROR: handshake error: ssh: handshake failed: read tcp
     127.0.0.1:3213: connection reset by peer  
-    <https://github.com/mitchellh/packer/issues/788#issuecomment-36421299>  
+    [https://github.com/mitchellh/packer/issues/788#issuecomment-36421299](https://github.com/mitchellh/packer/issues/788#issuecomment-36421299)  
     PROBLEM: the /etc/rc.d/rc.local file needs to be cleaned up to have
     the proper SSH keys instead of Amazon keys.  
     NOTE: also make sure that the user running packer has his own SSH
@@ -752,7 +752,7 @@ speed up the process.
 
 [^3]: In the Vagrant post-processor there is the variable
     `{% raw %}{{.BuildName}}{% endraw %}`
-    <https://www.packer.io/docs/post-processors/vagrant.html>
+    [https://www.packer.io/docs/post-processors/vagrant.html](https://www.packer.io/docs/post-processors/vagrant.html)
 
 [^4]: `build_name` is actually a template global function
-    <https://www.packer.io/docs/templates/configuration-templates.html>
+    [https://www.packer.io/docs/templates/configuration-templates.html](https://www.packer.io/docs/templates/configuration-templates.html)

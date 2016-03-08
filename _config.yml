@@ -42,7 +42,7 @@ kramdown:
         block:
             line_numbers: true
             start_line: 1
-        inline_theme: monokai
+        #inline_theme: monokai
         # preview (some of the) color schemes:
         #   http://vimcolors.com/
         #   https://github.com/jneen/rouge#inline_theme-nil

@@ -7,6 +7,8 @@ tags: tutorial vagrant
 author: Alexandre Constantino
 ---
 
+{% include toc.md %}
+
 # About
 
 This is a guide on Vagrant which covers most of what there is to known
@@ -44,7 +46,7 @@ are provider specific. While an instantiated VM is referred as
 *development environment*.
 
 **Vagrant recipes used in this tutorial:**  
-<https://github.com/alexconst/vagrant_recipes>
+[https://github.com/alexconst/vagrant_recipes](https://github.com/alexconst/vagrant_recipes)
 
 # Understanding the magic
 
@@ -108,26 +110,26 @@ Vagrant ships with provider support for VirtualBox, Docker and HyperV.
 Support for other providers can be done via plugins:
 
 -   VMware Workstation/Fusion: developed and supported by the authors of
-    Vagrant and it costs $79. <https://www.vagrantup.com/vmware>
+    Vagrant and it costs $79. [https://www.vagrantup.com/vmware](https://www.vagrantup.com/vmware)
 -   VMware Workstation/Fusion: a free plugin which according to the
     author is not mature enough to be called alpha. And apparently no
-    longer works[^1]. <https://github.com/orishavit/vagrant-vmware-free>
--   KVM and QEMU: <https://github.com/pradels/vagrant-libvirt>
--   AWS cloud: <https://github.com/mitchellh/vagrant-aws>
--   Google cloud: <https://github.com/mitchellh/vagrant-google>
--   Rackspace cloud: <https://github.com/mitchellh/vagrant-rackspace>
--   VMware vSphere: <https://github.com/nsidc/vagrant-vsphere>
+    longer works[^1]. [https://github.com/orishavit/vagrant-vmware-free](https://github.com/orishavit/vagrant-vmware-free)
+-   KVM and QEMU: [https://github.com/pradels/vagrant-libvirt](https://github.com/pradels/vagrant-libvirt)
+-   AWS cloud: [https://github.com/mitchellh/vagrant-aws](https://github.com/mitchellh/vagrant-aws)
+-   Google cloud: [https://github.com/mitchellh/vagrant-google](https://github.com/mitchellh/vagrant-google)
+-   Rackspace cloud: [https://github.com/mitchellh/vagrant-rackspace](https://github.com/mitchellh/vagrant-rackspace)
+-   VMware vSphere: [https://github.com/nsidc/vagrant-vsphere](https://github.com/nsidc/vagrant-vsphere)
 -   VMware vCenter: the project looks dead
-    <https://github.com/frapposelli/vagrant-vcenter>
+    [https://github.com/frapposelli/vagrant-vcenter](https://github.com/frapposelli/vagrant-vcenter)
 
 Other interesting plugins:
 
 -   vbguest: automatically keep the VirtualBox guest tools updated
-    <https://github.com/dotless-de/vagrant-vbguest/>
+    [https://github.com/dotless-de/vagrant-vbguest/](https://github.com/dotless-de/vagrant-vbguest/)
 -   mutate: convert boxes to work with different providers
-    <https://github.com/sciurus/vagrant-mutate>
+    [https://github.com/sciurus/vagrant-mutate](https://github.com/sciurus/vagrant-mutate)
 
-List of plugins: <http://vagrant-lists.github.io/>
+List of plugins: [http://vagrant-lists.github.io/](http://vagrant-lists.github.io/)
 
 Installing plugins:
 
@@ -641,9 +643,9 @@ Related to synced folders:
 -   non-fatal error message about stdin and tty  
     ERROR: `stdin: is not a tty`  
     REFERENCES:  
-    <http://foo-o-rama.com/vagrant--stdin-is-not-a-tty--fix.html>  
-    <https://github.com/Varying-Vagrant-Vagrants/VVV/issues/517>  
-    <https://github.com/mitchellh/vagrant/issues/1673>  
+    [http://foo-o-rama.com/vagrant--stdin-is-not-a-tty--fix.html](http://foo-o-rama.com/vagrant--stdin-is-not-a-tty--fix.html)  
+    [https://github.com/Varying-Vagrant-Vagrants/VVV/issues/517](https://github.com/Varying-Vagrant-Vagrants/VVV/issues/517)  
+    [https://github.com/mitchellh/vagrant/issues/1673](https://github.com/mitchellh/vagrant/issues/1673)  
     SOLUTION: add the following as the first provisioner:
 
     ``` ruby
@@ -657,7 +659,7 @@ Related to synced folders:
     ERROR:
     `dpkg-preconfigure: unable to re-open stdin: No such file or directory`  
     REFERENCES:  
-    <http://serverfault.com/questions/500764/dpkg-reconfigure-unable-to-re-open-stdin-no-file-or-directory>  
+    [http://serverfault.com/questions/500764/dpkg-reconfigure-unable-to-re-open-stdin-no-file-or-directory](http://serverfault.com/questions/500764/dpkg-reconfigure-unable-to-re-open-stdin-no-file-or-directory)  
     SOLUTION 1: prepend the following line to any script with apt-get
     calls:
 
@@ -696,28 +698,28 @@ Related to synced folders:
 
 # Footnotes
 
-[^1]: <https://github.com/mitchellh/vagrant/issues/6935>
+[^1]: [https://github.com/mitchellh/vagrant/issues/6935](https://github.com/mitchellh/vagrant/issues/6935)
 
 [^2]: If you really need to have support for AWS credential files and
     can't wait for the PR to get merged and a new release come out, then
     take a look at the [Vagrantfile for the AWS recipe at my
     github](https://github.com/alexconst/vagrant_recipes/tree/master/blank-jessie64-aws).
 
-[^3]: <https://atlas.hashicorp.com/boxes/search>
+[^3]: [https://atlas.hashicorp.com/boxes/search](https://atlas.hashicorp.com/boxes/search)
 
-[^4]: <https://github.com/hollodotme/Helpers/blob/master/Tutorials/vagrant/self-hosted-vagrant-boxes-with-versioning.md>
+[^4]: [https://github.com/hollodotme/Helpers/blob/master/Tutorials/vagrant/self-hosted-vagrant-boxes-with-versioning.md](https://github.com/hollodotme/Helpers/blob/master/Tutorials/vagrant/self-hosted-vagrant-boxes-with-versioning.md)
 
-[^5]: <https://www.vagrantup.com/docs/providers/configuration.html>
+[^5]: [https://www.vagrantup.com/docs/providers/configuration.html](https://www.vagrantup.com/docs/providers/configuration.html)
 
-[^6]: <https://www.virtualbox.org/manual/ch08.html#vboxmanage-modifyvm>
+[^6]: [https://www.virtualbox.org/manual/ch08.html#vboxmanage-modifyvm](https://www.virtualbox.org/manual/ch08.html#vboxmanage-modifyvm)
 
 [^7]: Do not use agent forward, instead use proxy command.
-    <https://heipei.github.io/2015/02/26/SSH-Agent-Forwarding-considered-harmful/>
+    [https://heipei.github.io/2015/02/26/SSH-Agent-Forwarding-considered-harmful/](https://heipei.github.io/2015/02/26/SSH-Agent-Forwarding-considered-harmful/)
 
-[^8]: <https://www.vagrantup.com/docs/vagrantfile/ssh_settings.html>
+[^8]: [https://www.vagrantup.com/docs/vagrantfile/ssh_settings.html](https://www.vagrantup.com/docs/vagrantfile/ssh_settings.html)
 
-[^9]: <https://docs.vagrantup.com/v2/synced-folders/virtualbox.html>
+[^9]: [https://docs.vagrantup.com/v2/synced-folders/virtualbox.html](https://docs.vagrantup.com/v2/synced-folders/virtualbox.html)
 
-[^10]: <https://www.virtualbox.org/ticket/9069>
+[^10]: [https://www.virtualbox.org/ticket/9069](https://www.virtualbox.org/ticket/9069)
 
-[^11]: <https://docs.vagrantup.com/v2/synced-folders/nfs.html>
+[^11]: [https://docs.vagrantup.com/v2/synced-folders/nfs.html](https://docs.vagrantup.com/v2/synced-folders/nfs.html)

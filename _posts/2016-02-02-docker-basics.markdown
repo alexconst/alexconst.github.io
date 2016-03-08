@@ -7,6 +7,8 @@ tags: 'cheat-sheet virtualization docker'
 author: Alexandre Constantino
 ---
 
+{% include toc.md %}
+
 # Installing Docker
 
 ``` bash
@@ -186,7 +188,7 @@ echo 'export LC_ALL="en_US.UTF-8"' >> $HOME/.bashrc
 update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
 ```
 
-<http://jaredmarkell.com/docker-and-locales/>
+[http://jaredmarkell.com/docker-and-locales/](http://jaredmarkell.com/docker-and-locales/)
 
 # Example: Jekyll container
 
@@ -368,10 +370,10 @@ docker run -t -i --rm=true -v "${hostmnt}:${contmnt}" -p "${hostport}:${contport
 ```
 
 References:  
-<https://docs.docker.com/engine/userguide/containers/dockerimages/#building-an-image-from-a-dockerfile>  
-<https://docs.docker.com/engine/reference/builder/>  
-<http://stackoverflow.com/questions/28510982/dockerfile-understanding-volume-instruction>  
-<http://container42.com/2014/11/03/docker-indepth-volumes/>
+[https://docs.docker.com/engine/userguide/containers/dockerimages/#building-an-image-from-a-dockerfile](https://docs.docker.com/engine/userguide/containers/dockerimages/#building-an-image-from-a-dockerfile)  
+[https://docs.docker.com/engine/reference/builder/](https://docs.docker.com/engine/reference/builder/)  
+[http://stackoverflow.com/questions/28510982/dockerfile-understanding-volume-instruction](http://stackoverflow.com/questions/28510982/dockerfile-understanding-volume-instruction)  
+[http://container42.com/2014/11/03/docker-indepth-volumes/](http://container42.com/2014/11/03/docker-indepth-volumes/)
 
 # Troubleshooting
 
@@ -437,7 +439,7 @@ References:
     ```
 
 **References:**  
-<https://fralef.me/docker-and-iptables.html>  
-<http://blog.oddbit.com/2014/08/11/four-ways-to-connect-a-docker/>  
-<http://odino.org/cannot-connect-to-the-internet-from-your-docker-containers/>  
-<https://docs.docker.com/engine/installation/ubuntulinux/#enable-ufw-forwarding>
+[https://fralef.me/docker-and-iptables.html](https://fralef.me/docker-and-iptables.html)  
+[http://blog.oddbit.com/2014/08/11/four-ways-to-connect-a-docker/](http://blog.oddbit.com/2014/08/11/four-ways-to-connect-a-docker/)  
+[http://odino.org/cannot-connect-to-the-internet-from-your-docker-containers/](http://odino.org/cannot-connect-to-the-internet-from-your-docker-containers/)  
+[https://docs.docker.com/engine/installation/ubuntulinux/#enable-ufw-forwarding](https://docs.docker.com/engine/installation/ubuntulinux/#enable-ufw-forwarding)
