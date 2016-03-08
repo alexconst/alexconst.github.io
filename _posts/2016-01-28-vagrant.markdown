@@ -13,13 +13,10 @@ author: Alexandre Constantino
 
 This is a guide on Vagrant which covers most of what there is to known
 about it. If you've found other resources to be confusing, not going
-through all the steps, or leaving out information; then you may find
-this tutorial helpful.  
+through all the steps, or not able to demystify how things work; then
+you may find this tutorial helpful.  
 In any case, if you just need a cheat sheet then jump into the [Basics
-section](#basics).  
-The only major feature left out from this tutorial was Multi-Machines,
-which will be approached in another tutorial where Ansible will also be
-used.
+section](#basics).
 
 # What is Vagrant
 
@@ -51,7 +48,8 @@ are provider specific. While an instantiated VM is referred as
 # Understanding the magic
 
 Vagrant acts as a wrapper around different providers (eg: VirtualBox)
-and provisioning tools (eg: Ansible), making the whole process:
+and provisioning tools (eg: [Ansible]({% post_url 2016-02-08-ansible %})), making the whole
+process:
 
 -   easy: with just a couple of commands you can ssh into a new
     development environment;
@@ -75,7 +73,7 @@ series of Vagrant files and merges and overrides the settings as it
 goes. The order being: the Vagrantfile packaged in the box, the
 Vagrantfile at `~/.vagrant.d/`, the Vagrantfile for the current
 environment (this is the one that we'll change most of the time),
-multi-machines overrides, and provider specific overrides.  
+multi-machine overrides, and provider specific overrides.  
 Vagrant boxes are installed to `~/.vagrant.d/boxes/` while environments
 are created at each provider's own default folder.  
 Vagrant then acts as a wrapper to the different virtualization software
@@ -127,7 +125,11 @@ Other interesting plugins:
 -   vbguest: automatically keep the VirtualBox guest tools updated
     [https://github.com/dotless-de/vagrant-vbguest/](https://github.com/dotless-de/vagrant-vbguest/)
 -   mutate: convert boxes to work with different providers
-    [https://github.com/sciurus/vagrant-mutate](https://github.com/sciurus/vagrant-mutate)
+    <https://github.com/sciurus/vagrant-mutate>
+-   triggers: allow the definition of arbitrary scripts that will run on
+    the host or guest before and/or after Vagrant commands
+    <https://github.com/emyl/vagrant-triggers> ([related discussion at
+    SO](http://stackoverflow.com/questions/21476713/is-there-any-hook-like-pre-vagrant-up))
 
 List of plugins: [http://vagrant-lists.github.io/](http://vagrant-lists.github.io/)
 
@@ -443,6 +445,94 @@ cd $to_directory_with_your_blog
 pkill jekyll ; jekyll build  && jekyll serve
 ```
 
+## DevEnv 1.1: Using Ansible
+
+Here we create the same GitHub Pages & Jekyll environment. But instead
+of using shell scripts for provisioning we'll use [Ansible]({% post_url 2016-02-08-ansible %})
+(for more information about it check my tutorial).
+
+Install Ansible on your host machine:
+
+<http://docs.ansible.com/ansible/intro_installation.html#installing-the-control-machine>
+
+NOTE: we are not setting an inventory file (which is basically a list of
+hosts) here since Vagrant will take care of it for us dynamically.
+
+``` bash
+# install Ansible from source
+cd /usr/local/src
+git clone git://github.com/ansible/ansible.git --recursive
+
+# install dependencies
+sudo pip install paramiko PyYAML Jinja2 httplib2 six
+
+alias setupansible='source /usr/local/src/ansible/hacking/env-setup'
+
+# to use ansible
+setupansible
+
+# to update Ansible
+cd /usr/local/src/ansible
+git pull --rebase
+git submodule update --init --recursive
+```
+
+Edit the Vagrantfile to have the provisioning done using Ansible:
+
+``` ruby
+config.vm.provision "ansible" do |ansible|
+  ansible.playbook = "ansible/playbook.yml"
+end
+```
+
+Create the `ansible/playbook.yml` playbook:
+
+``` yaml
+---
+# This playbook only has one play
+# And it applies to all hosts in the inventory file (which is dynamically
+# created by Vagrant)
+- hosts: all
+  # we need priviledge escalation to install software, so we become root
+  become: yes
+  # and we become root using sudo
+  become_method: sudo
+  # to perform the following tasks:
+  # (and tasks should always have a name)
+  tasks:
+    - name: Update package listing cache
+      # use the Ansible apt module to:
+      # update package list, but don't upgrade the system
+      apt: update_cache=yes upgrade=no cache_valid_time=1800
+
+    - name: Install packages required by GitHub Pages
+      # use the Ansible apt module to:
+      # install the listed packages to the latest available version
+      apt: pkg={% raw %}{{item}}{% endraw %} state=latest install_recommends=no
+      with_items:
+        - htop
+        - ruby-dev
+        - bundler
+        - zlib1g-dev
+        - ruby-execjs
+        - python-pygments
+
+    - name: Install the GitHub Pages Ruby gem
+      # use the Ansible gem module to:
+      # install the listed Ruby gems to the latest available version for all users
+      gem: name={% raw %}{{item}}{% endraw %} state=latest user_install=no
+      with_items:
+        - activesupport
+        - github-pages
+```
+
+Deploy the environment:
+
+``` bash
+setupansible
+vagrant up
+```
+
 ## DevEnv 2: AWS environment
 
 The AWS provider is supported via the `vagrant-aws` plugin, which
@@ -509,6 +599,86 @@ vagrant up --provider=aws
 vagrant ssh
 ```
 
+## DevEnv 3: Multi-Machine environment
+
+This is a mock example of a multi-machine environment. For a more
+realistic example, with complete provisioning, check this
+[Ansible]({% post_url 2016-02-08-ansible %}) tutorial.
+
+``` ruby
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure(2) do |config|
+
+  # Choose a box
+  config.vm.box = "ubuntu/wily64"
+
+  # Fine tune the virtualbox VM
+  config.vm.provider "virtualbox" do |vb|
+    vb.customize [
+      "modifyvm", :id,
+      "--cpus", "2",
+      "--cpuexecutioncap", "50",
+      "--memory", "384",
+    ]
+  end
+
+  # Common provisioning
+  config.vm.provision :shell, inline: 'echo "Hello World"'
+
+  # web servers
+  (1..2).each do |i|
+    config.vm.define "web#{i}" do |node|
+      node.vm.hostname = "web#{i}"
+      node.vm.network :private_network, ip: "192.168.33.5#{i}"
+      node.vm.network "forwarded_port", guest: 80, host: "808#{i}"
+      # web server specific provisioning
+      node.vm.provision :shell, inline: 'echo "Web server reporting for duty."'
+    end
+  end
+
+  # db server
+  config.vm.define "db" do |db|
+    db.vm.hostname = "db"
+    db.vm.network :private_network, ip: "192.168.33.40"
+    db.vm.network "forwarded_port", guest: 5432, host: "54322"
+    # db server specific provisioning
+    db.vm.provision :shell, inline: 'echo "DB server ready to store and serve."'
+  end
+
+end
+```
+
+Because the Vagrantfile is a valid Ruby file it's possible to define a
+group of machines using the language constructs. Here the web servers
+are iterated and configured using the `node` object.  
+The settings applied to the `config` object (eg: `config.vm.box`) affect
+all the machines described in the Vagrantfile. While the settings
+applied to the `node` and `db` objects only affect the corresponding
+machines. With the above Vagrantfile, this will be observable when doing
+`vagrant up` thanks to the `provision` settings.
+
+To use the environment:
+
+``` bash
+# check status for all machines in the environment
+vagrant status
+
+# deploy the environment
+vagrant up
+# or just a single machine
+vagrant up web1
+
+# to connect to web1
+vagrant ssh web1
+# and since the machines are in a private network, you can connect from web1 to web2
+ssh 192.168.33.52
+
+# to destroy all machines in the environment without prompting the user
+vagrant destroy -f
+```
+
 # Other features
 
 This tutorial covers most of what there is to know about Vagrant and its
@@ -552,10 +722,6 @@ discussed but are worthwhile to be aware of. These are:
     SSH related settings, such as: guest domain/IP, guest port, private
     key, agent forward[^7], X11 forward, environment forward, pty, shell
     and sudo settings[^8].
-
--   Multi-machine environments  
-    This will be a subject for another tutorial where Ansible will
-    be used.
 
 # Known issues
 

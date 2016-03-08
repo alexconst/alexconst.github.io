@@ -10,9 +10,8 @@ tags:       tutorial vagrant
 
 # About
 
-This is a guide on Vagrant which covers most of what there is to known about it. If you've found other resources to be confusing, not going through all the steps, or leaving out information; then you may find this tutorial helpful.
+This is a guide on Vagrant which covers most of what there is to known about it. If you've found other resources to be confusing, not going through all the steps, or not able to demystify how things work; then you may find this tutorial helpful.
 In any case, if you just need a cheat sheet then jump into the [Basics section](#basics).
-The only major feature left out from this tutorial was Multi-Machines, which will be approached in another tutorial where Ansible will also be used.
 
 
 # What is Vagrant
@@ -31,7 +30,7 @@ The Vagrant VM images are commonly referred as *Vagrant boxes* and they are prov
 
 # Understanding the magic
 
-Vagrant acts as a wrapper around different providers (eg: VirtualBox) and provisioning tools (eg: Ansible), making the whole process:
+Vagrant acts as a wrapper around different providers (eg: VirtualBox) and provisioning tools (eg: [Ansible](ansible.md)), making the whole process:
 - easy: with just a couple of commands you can ssh into a new development environment;
 - simple: no need to configure any settings from each virtualization software;
 - uniform: it works the same way across multiple cloud providers and virtualization platforms (assuming Vagrant boxes are available for those providers); and
@@ -39,7 +38,7 @@ Vagrant acts as a wrapper around different providers (eg: VirtualBox) and provis
 
 The Vagrant boxes are created using [Packer](packer.md). And these consist on a tar file which include the virtualization software VM files (eg: .ovf, .vmdk) and a couple of Vagrant specific files.
 The configuration of a development environment is done via a Vagrantfile. It includes settings for box selection, network port forwarding, shared folders, credentials, provisioning scripts, and other settings; for one or more machine instances.
-When a new environment is created using `vagrant up` Vagrant loads a series of Vagrant files and merges and overrides the settings as it goes. The order being: the Vagrantfile packaged in the box, the Vagrantfile at `~/.vagrant.d/`, the Vagrantfile for the current environment (this is the one that we'll change most of the time), multi-machines overrides, and provider specific overrides.
+When a new environment is created using `vagrant up` Vagrant loads a series of Vagrant files and merges and overrides the settings as it goes. The order being: the Vagrantfile packaged in the box, the Vagrantfile at `~/.vagrant.d/`, the Vagrantfile for the current environment (this is the one that we'll change most of the time), multi-machine overrides, and provider specific overrides.
 Vagrant boxes are installed to `~/.vagrant.d/boxes/` while environments are created at each provider's own default folder.
 Vagrant then acts as a wrapper to the different virtualization software simplifying the whole process. For example, when `vagrant up` is executed it (if required) downloads a VM image, unpacks it, starts the VM, installs and configures software packages, and sets up the network and shared folders.
 This means that with a Vagrantfile and the corresponding provisioning scripts it becomes possible to define a whole development environment consisting of one or more machines. With the advantage that the whole configuration can be easily shared and put under version control.
@@ -72,19 +71,20 @@ Support for other providers can be done via plugins:
 Other interesting plugins:
 - vbguest: automatically keep the VirtualBox guest tools updated <https://github.com/dotless-de/vagrant-vbguest/>
 - mutate: convert boxes to work with different providers <https://github.com/sciurus/vagrant-mutate>
+- triggers: allow the definition of arbitrary scripts that will run on the host or guest before and/or after Vagrant commands <https://github.com/emyl/vagrant-triggers> ([related discussion at SO](http://stackoverflow.com/questions/21476713/is-there-any-hook-like-pre-vagrant-up))
 
 [^broken_vmware_free]: <https://github.com/mitchellh/vagrant/issues/6935>
 
 List of plugins: <http://vagrant-lists.github.io/>
 
 Installing plugins:
-````bash
+```bash
 vagrant plugin install vagrant-libvirt
 vagrant plugin install vagrant-vmware-free
 vagrant plugin install vagrant-aws
 vagrant plugin list
 vagrant plugin update
-````
+```
 Plugins are downloaded from the ruby gems repository and are installed to `$HOME/.vagrant.d/gems/gems/`.
 
 
@@ -97,7 +97,7 @@ Plugins are downloaded from the ruby gems repository and are installed to `$HOME
 
 This section is a bit of a cheat sheet and characterizes a typical Vagrant workflow.
 
-````bash
+```bash
 # check version
 vagrant version
 
@@ -148,7 +148,7 @@ vagrant box remove $boxname
 
 # get a list of available boxes
 vagrant box list
-````
+```
 
 
 
@@ -159,7 +159,7 @@ Taking snapshots is simple, but there are a few caveats.
 If you use `push` and `pop` it is not recommended to mix them with `save` and `restore` and `delete`.
 Also some providers (VirtualBox included) require that when `delete` is used that all subsequent snapshots are deleted in the reverse order that they were taken.
 So when using snapshots choose one and only one of the options:
-````bash
+```bash
 # list existing snapshots
 vagrant snapshot list
 
@@ -176,7 +176,7 @@ vagrant snapshot save $snap_name
 vagrant snapshot restore $snap_name
 # delete a snapshot
 vagrant snapshot delete $snap_name
-````
+```
 
 
 
@@ -186,7 +186,7 @@ vagrant snapshot delete $snap_name
 This section details how to add a local Vagrant box (that was created with [Packer](packer.md)) and how to set up a development environment using a Vagrantfile. It goes through the most commonly used Vagrantfile settings.
 
 Add a local Vagrant box to the pool of available boxes:
-````bash
+```bash
 # select the box
 boxfile="debian-802-jessie-amd64_jessie-vboxiso.box"
 boxname="alexconst/debian/jessie64/20160115.0.3"
@@ -194,17 +194,17 @@ boxname="alexconst/debian/jessie64/20160115.0.3"
 vagrant box add  "${boxfile}"  --name "${boxname}"
 # check that it has been added
 vagrant box list
-````
+```
 Note that there is a `--box-version` option to the `box add` command but that is only for remote clouds (eg: Hashicorp Atlas), so we workaround that limitation by adding the version tag to the box name. This "workaround" does give us visual identification, but doesn't really provide the version constraint features of that command option.
 
 
 Create a blank Vagrantfile:
-````bash
+```bash
 vagrant init
-````
+```
 
 Then to configure a new environment, that uses the new box, edit the Vagrantfile as follows:
-````ruby
+```ruby
 # select our box
 config.vm.box = "alexconst/debian/jessie64/20160115.0.3"
 
@@ -248,7 +248,7 @@ config.vm.provision "shell", path: "scripts/packages.sh"
 # provision done by executing an already existing script in the guest
 config.vm.provision "shell", inline: "/bin/bash /path/to/script.sh"
 
-````
+```
 
 Our use case matches the default scenario where the guest is Linux and communication is done via `ssh`. But Vagrant also supports Windows guest where communication is done via `winrm`.
 Vagrant also supports synced folders via different implementations: NFS (Linux only), Samba (Windows only), rsync, and the provider's own mechanism (eg: VirtualBox shared folders). However these are not perfect; do check the [Known issues](#known-issues) section for more information.
@@ -256,10 +256,10 @@ Regarding rsync, it does a one-time one-way (from host to guest) folder synchron
 
 
 To instantiate a new environment using our box and connect to it:
-````bash
+```bash
 vagrant up
 vagrant ssh
-````
+```
 
 
 
@@ -270,7 +270,7 @@ Here we'll see how to set up a development environment ready for blogging by ins
 This way we'll have an environment that matches the GitHub Pages website blogging backend and so we'll be able to preview our posts just as they'll be shown on the GitHub website.
 
 The Vagrantfile:
-````ruby
+```ruby
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
@@ -330,10 +330,10 @@ A Vagrant tutorial can be found at http://alexconst.github.io/"
   config.vm.provision "shell", path: "scripts/jekyll.sh"
 
 end
-````
+```
 
 And the provisioning script:
-````bash
+```bash
 #!/bin/bash
 
 apt-get update
@@ -349,12 +349,12 @@ apt-get install -y python-pygments
 gem install activesupport
 gem install github-pages
 apt-get clean
-````
+```
 
 
 
 To get jekyll running:
-````bash
+```bash
 # deploy and connect to the environment
 vagrant up
 vagrant ssh
@@ -367,10 +367,94 @@ cd $to_directory_with_your_blog
 
 # start jekyll webserver
 pkill jekyll ; jekyll build  && jekyll serve
-````
+```
 
 
 
+## DevEnv 1.1: Using Ansible
+
+Here we create the same GitHub Pages & Jekyll environment. But instead of using shell scripts for provisioning we'll use [Ansible](ansible.md) (for more information about it check my tutorial).
+
+Install Ansible on your host machine:
+
+<http://docs.ansible.com/ansible/intro_installation.html#installing-the-control-machine>
+
+NOTE: we are not setting an inventory file (which is basically a list of hosts) here since Vagrant will take care of it for us dynamically.
+
+```bash
+# install Ansible from source
+cd /usr/local/src
+git clone git://github.com/ansible/ansible.git --recursive
+
+# install dependencies
+sudo pip install paramiko PyYAML Jinja2 httplib2 six
+
+alias setupansible='source /usr/local/src/ansible/hacking/env-setup'
+
+# to use ansible
+setupansible
+
+# to update Ansible
+cd /usr/local/src/ansible
+git pull --rebase
+git submodule update --init --recursive
+```
+
+
+
+Edit the Vagrantfile to have the provisioning done using Ansible:
+```ruby
+config.vm.provision "ansible" do |ansible|
+  ansible.playbook = "ansible/playbook.yml"
+end
+```
+
+Create the `ansible/playbook.yml` playbook:
+```yaml
+---
+# This playbook only has one play
+# And it applies to all hosts in the inventory file (which is dynamically
+# created by Vagrant)
+- hosts: all
+  # we need priviledge escalation to install software, so we become root
+  become: yes
+  # and we become root using sudo
+  become_method: sudo
+  # to perform the following tasks:
+  # (and tasks should always have a name)
+  tasks:
+    - name: Update package listing cache
+      # use the Ansible apt module to:
+      # update package list, but don't upgrade the system
+      apt: update_cache=yes upgrade=no cache_valid_time=1800
+
+    - name: Install packages required by GitHub Pages
+      # use the Ansible apt module to:
+      # install the listed packages to the latest available version
+      apt: pkg={{item}} state=latest install_recommends=no
+      with_items:
+        - htop
+        - ruby-dev
+        - bundler
+        - zlib1g-dev
+        - ruby-execjs
+        - python-pygments
+
+    - name: Install the GitHub Pages Ruby gem
+      # use the Ansible gem module to:
+      # install the listed Ruby gems to the latest available version for all users
+      gem: name={{item}} state=latest user_install=no
+      with_items:
+        - activesupport
+        - github-pages
+```
+
+Deploy the environment:
+
+```bash
+setupansible
+vagrant up
+```
 
 
 
@@ -434,7 +518,89 @@ vagrant ssh
 ```
 
 
+## DevEnv 3: Multi-Machine environment
 
+This is a mock example of a multi-machine environment. For a more realistic example, with complete provisioning, check this [Ansible](ansible.md) tutorial.
+
+```ruby
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure(2) do |config|
+
+  # Choose a box
+  config.vm.box = "ubuntu/wily64"
+
+  # Fine tune the virtualbox VM
+  config.vm.provider "virtualbox" do |vb|
+    vb.customize [
+      "modifyvm", :id,
+      "--cpus", "2",
+      "--cpuexecutioncap", "50",
+      "--memory", "384",
+    ]
+  end
+
+  # Common provisioning
+  config.vm.provision :shell, inline: 'echo "Hello World"'
+
+  # web servers
+  (1..2).each do |i|
+    config.vm.define "web#{i}" do |node|
+      node.vm.hostname = "web#{i}"
+      node.vm.network :private_network, ip: "192.168.33.5#{i}"
+      node.vm.network "forwarded_port", guest: 80, host: "808#{i}"
+      # web server specific provisioning
+      node.vm.provision :shell, inline: 'echo "Web server reporting for duty."'
+    end
+  end
+
+  # db server
+  config.vm.define "db" do |db|
+    db.vm.hostname = "db"
+    db.vm.network :private_network, ip: "192.168.33.40"
+    db.vm.network "forwarded_port", guest: 5432, host: "54322"
+    # db server specific provisioning
+    db.vm.provision :shell, inline: 'echo "DB server ready to store and serve."'
+  end
+
+end
+```
+Because the Vagrantfile is a valid Ruby file it's possible to define a group of machines using the language constructs. Here the web servers are iterated and configured using the `node` object.
+The settings applied to the `config` object (eg: `config.vm.box`) affect all the machines described in the Vagrantfile. While the settings applied to the `node` and `db` objects only affect the corresponding machines. This will become apparent when doing `vagrant up` due to the specified shell provisioning echo commands.
+
+To use the environment:
+```bash
+# check status for all machines in the environment
+vagrant status
+
+# deploy the environment
+vagrant up
+# or just a single machine
+vagrant up web1
+
+# to connect to web1
+vagrant ssh web1
+# and since the machines are in a private network, you can connect from web1 to web2
+ssh 192.168.33.52
+
+# to destroy all machines in the environment without prompting the user
+vagrant destroy -f
+```
+
+Finally, one important thing to be aware of when using these inner config objects, is how they are evaluated/executed. Vagrant enforces an outside-in ordering, which means that "nesting level" has priority over "line location". Taking this example from the manual[^docs_multimachine]:
+```ruby
+Vagrant.configure("2") do |config|
+    config.vm.provision :shell, inline: "echo A"
+    config.vm.define :testing do |test|
+        test.vm.provision :shell, inline: "echo B"
+    end
+    config.vm.provision :shell, inline: "echo C"
+end
+```
+The outside-in ordering means the provisioners will first output "A", then "C", and finally "B". Which is counter-intuitive to what someone would expect.
+
+[^docs_multimachine]: <https://www.vagrantup.com/docs/multi-machine/>
 
 
 
@@ -461,8 +627,6 @@ Vagrant allows configuring additional provider specific settings as well as over
 - SSH settings
 On the scenario described in this tutorial only the SSH credentials needed to be provided. But Vagrant allows configuring several other SSH related settings, such as: guest domain/IP, guest port, private key, agent forward[^agent_harmful], X11 forward, environment forward, pty, shell and sudo settings[^ssh_settings].
 
-- Multi-machine environments
-This will be a subject for another tutorial where Ansible will be used.
 
 [^hashi_atlas]: <https://atlas.hashicorp.com/boxes/search>
 [^owncatalog]: <https://github.com/hollodotme/Helpers/blob/master/Tutorials/vagrant/self-hosted-vagrant-boxes-with-versioning.md>
@@ -503,10 +667,10 @@ Related to synced folders:
 - To connect to a development environment directly without going through Vagrant: `ssh -p $(vagrant port --guest 22) -l $box_username localhost`.
 
 - To enable logging:
-````bash
+```bash
 # supported levels are: debug, info, warn, error
 export VAGRANT_LOG="debug"
-````
+```
 
 - To run the latest version of Vagrant or any of its plugins from GitHub's master branch (which BTW is not recommended), then clone the repo and then use `bundle` to run vagrant. Check the [vagrant_dev-wily64-atlas](https://github.com/alexconst/vagrant_recipes/tree/master/vagrant_dev-wily64-atlas) recipe for more details, but it would go something like this:
 ```bash
@@ -528,9 +692,9 @@ SOLUTION: `apt-get install libvirt-dev` and then `gem install ruby-libvirt -v '0
 
 - failure when adding a new box
 ERROR:
-````text
+```text
 /opt/vagrant/embedded/lib/ruby/2.2.0/fileutils.rb:252:in 'mkdir': File name too long @ dir_s_mkdir - /home/$USER/.vagrant.d/boxes/file:-VAGRANTSLASH--VAGRANTSLASH--VAGRANTSLASH-...-VAGRANTSLASH-debian-802-jessie-amd64_jessie-vboxiso.box (Errno::ENAMETOOLONG)
-````
+```
 SOLUTION: `cd` into the directory with the box file and run the `vagrant box add` command from there refering directly to the filename (ie: no path)
 
 - non-fatal error message about stdin and tty
@@ -540,38 +704,38 @@ http://foo-o-rama.com/vagrant--stdin-is-not-a-tty--fix.html
 https://github.com/Varying-Vagrant-Vagrants/VVV/issues/517
 https://github.com/mitchellh/vagrant/issues/1673
 SOLUTION: add the following as the first provisioner:
-````ruby
+```ruby
 config.vm.provision "fix-no-tty", type: "shell" do |s|
     s.privileged = false
     s.inline = "sudo sed -i '/tty/!s/mesg n/tty -s \\&\\& mesg n/' /root/.profile"
 end
-````
+```
 
 - non-fatal error message about stdin when using apt
 ERROR: `dpkg-preconfigure: unable to re-open stdin: No such file or directory`
 REFERENCES:
 http://serverfault.com/questions/500764/dpkg-reconfigure-unable-to-re-open-stdin-no-file-or-directory
 SOLUTION 1: prepend the following line to any script with apt-get calls:
-````bash
+```bash
 export DEBIAN_FRONTEND=noninteractive
-````
+```
 SOLUTION 2: add the following lines before running other provisioners that use apt
-````ruby
+```ruby
 config.vm.provision "shell", inline: "echo 'export DEBIAN_FRONTEND=noninteractive' >> /root/.profile"
 config.vm.provision "shell", inline: "for user in /home/*; do echo 'export DEBIAN_FRONTEND=noninteractive' >> $user/.profile; done"
-````
+```
 
 - unable to access the guest directly via SSH when using a private network
 NOTE: failure to connect to the guest via SSH may be due to sshd configuration issues. If you can ping the machine and telnet to the SSH port, then the private network is working. If still not convinced yet, then install lighttpd and access port 80 from the host. Make sure you're using the correct IP and port. Example:
-````bash
+```bash
 ssh vagrant@$private_network_ip
 # example:
 ssh vagrant@192.168.22.50
-````
+```
 If `/etc/ssh/sshd_config` has `PasswordAuthentication no` then you'll have to use a command similar to this one:
-````bash
+```bash
 ssh -i ./.vagrant/machines/default/virtualbox/private_key vagrant@192.168.22.50
-````
+```
 
 
 
