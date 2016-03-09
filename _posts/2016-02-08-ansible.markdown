@@ -22,6 +22,9 @@ it is broad and deep enough to give a jump start to using it.
 a convenient way to make development environments easily available for
 testing Ansible.
 
+The recipes used in this tutorial can be found at
+<https://github.com/alexconst/ansible_recipes>.
+
 # What is Ansible
 
 *"Ansible is an IT automation tool. It can configure systems, deploy

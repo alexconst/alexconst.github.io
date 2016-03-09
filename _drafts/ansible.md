@@ -12,6 +12,7 @@ tags:       tutorial ansible vagrant
 This is a concise tutorial on Ansible. It starts by giving a description on what Ansible is and what it is used for, provides instructions how to install it, and gives an overview on its playbooks. Then goes into more detail on the files used by Ansible: inventory, configuration, and playbooks. It finalizes by showcasing multiple use cases. It doesn't cover everything, since to do so would make it look like the manual, but it is broad and deep enough to give a jump start to using it.
 [Vagrant](vagrant.md) will be used in this tutorial since it provides us a convenient way to make development environments easily available for testing Ansible.
 
+The recipes used in this tutorial can be found at <https://github.com/alexconst/ansible_recipes>.
 
 # What is Ansible
 
