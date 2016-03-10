@@ -9,6 +9,12 @@ url: "http://yourdomain.com" # the base hostname & protocol for your site
 #twitter_username: jekyllrb
 github_username:  alexconst
 
+
+google_analytics_tracking_id: UA-74926469-1
+
+
+
+
 # Serving
 port: 4000
 host: 0.0.0.0
