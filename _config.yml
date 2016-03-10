@@ -5,14 +5,16 @@ email: dreaming.about.electric.sheep@gmail.com
 description: > # this means to ignore newlines until "baseurl:"
   Documenting some of my experiences with software and technology.
 baseurl: "" # the subpath of your site, e.g. /blog/
-url: "http://yourdomain.com" # the base hostname & protocol for your site
+hostname: "alexconst.net"
+url: "http://alexconst.net" # the base hostname & protocol for your site
 #twitter_username: jekyllrb
 github_username:  alexconst
 
 
 google_analytics_tracking_id: UA-74926469-1
 
-
+gems:
+  - jekyll-sitemap
 
 
 # Serving

@@ -1,0 +1,11 @@
+---
+disallows:
+  - /404.html
+---
+
+User-agent: *{% for disallowed in page.disallows %}
+Disallow: {{ disallowed }}{% endfor %}
+Allow: /
+Sitemap: {{ site.url }}/sitemap.xml
+Host: {{ site.hostname }}
+
