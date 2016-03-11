@@ -3,8 +3,18 @@
     <meta name="viewport" content="width=device-width initial-scale=1" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
-    <title>{% if page.title %}{{ page.title }}{% else %}{{ site.title }}{% endif %}</title>
+{% if page.title %}
+    <title>{{ page.title }}</title>
+  {% if page.description %}
+    <meta name="description" content="{{ page.description | truncatewords: 200 | escape_once }}" />
+  {% else %}
+    <meta name="description" content="{{ content | strip_html | truncatewords: 200 | strip_newlines | escape_once }}" />
+  {% endif %}
+{% else %}
+    <title>{{ site.title }}</title>
     <meta name="description" content="{{ site.description }}">
+{% endif %}
+
 
     <link rel="stylesheet" href="{{ "/css/main.css" | prepend: site.baseurl }}">
     <link rel="canonical" href="{{ page.url | replace:'index.html','' | prepend: site.baseurl | prepend: site.url }}">
