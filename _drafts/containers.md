@@ -1,6 +1,7 @@
 ---
 layout: post
 title:  'OS level virtualization (aka containers)'
+description: 'TODO'
 author: 'Alexandre Constantino'
 date:   2016-02-05
 categories: devops

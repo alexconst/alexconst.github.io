@@ -1,6 +1,7 @@
 ---
 layout: post
 title:  'Vagrant – automating environment deployment'
+description: 'A tutorial on how to use Vagrant to simplify the deployment of virtual machine environments, for use in software development, testing, or plain sandboxing.'
 author: 'Alexandre Constantino'
 date:   2016-01-28
 categories: devops

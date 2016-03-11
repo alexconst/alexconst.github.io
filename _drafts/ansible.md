@@ -1,6 +1,7 @@
 ---
 layout: post
 title:  'Ansible – automating system configuration'
+description: 'A tutorial on how to use Ansible for configuration management tasks.'
 author: 'Alexandre Constantino'
 date:   2016-02-08
 categories: devops

@@ -1,6 +1,7 @@
 ---
 layout: post
 title: Docker basics in X minutes
+description: 'Docker basics cheat sheet.'
 date: '2016-02-02'
 categories: devops
 tags: 'cheat-sheet virtualization docker'

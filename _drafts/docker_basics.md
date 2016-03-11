@@ -1,6 +1,7 @@
 ---
 layout: post
 title:  'Docker basics in X minutes'
+description: 'Docker basics cheat sheet.'
 author: 'Alexandre Constantino'
 date:   2016-02-02
 categories: devops

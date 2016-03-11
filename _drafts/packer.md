@@ -1,6 +1,7 @@
 ---
 layout: post
 title:  'Packer – automating virtual machine image creation'
+description: 'A tutorial on how you can automate virtual machine image creation using Packer.'
 author: 'Alexandre Constantino'
 date:   2016-01-11
 categories: devops
