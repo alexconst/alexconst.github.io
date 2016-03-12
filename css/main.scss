@@ -23,11 +23,31 @@ $red-color:         #ff0000;
 $red-brown-color:   #963019;
 $black-color:       #000000;
 
+// autumn theme
+/*$text-color:        $grey-color;*/
+/*$background-color:  $brown-color;*/
+/*$brand-color:       $red-color;*/
+/*$headers-color:     $golden-color;*/
+/*$line-color:        $red-brown-color;*/
+
+// blade runner theme v1
+/*$text-color:        $grey-color;*/
+/*$background-color:  #0e2d4c;*/
+/*$brand-color:       $red-color;*/
+/*$headers-color:     #fced54;*/
+/*$line-color:        #67b1d8;*/
+
+// blade runner theme v2
 $text-color:        $grey-color;
-$background-color:  $brown-color;
-$brand-color:       $red-color;
-$headers-color:     $golden-color;
-$line-color:        $red-brown-color;
+$background-color:  #111111;
+$brand-color:       #67b1d8;
+$headers-color:     $red-color;
+$line-color:        #fced54;
+
+
+
+
+
 
 $syntax-bg-color:   $black-color;
 
