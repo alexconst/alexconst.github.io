@@ -20,6 +20,8 @@ body {
     font-weight: 400;
     color: $text-color;
     background-color: $background-color;
+    /*background: linear-gradient($background-color, $background-color2);*/
+    /*background: linear-gradient(to right, $background-color2 0%, $background-color 20%, $background-color 80%, $background-color2 100%);*/
     -webkit-text-size-adjust: 100%;
     text-align: justify;
     text-justify: inter-word;
