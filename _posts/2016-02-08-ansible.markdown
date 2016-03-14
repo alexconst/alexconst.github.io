@@ -482,9 +482,9 @@ about the external IP address of the machines in the *webservers* group
 as follows:
 
 ``` python
-{% for host in groups['webservers'] %}
+{% raw %}{% for host in groups['webservers'] %}{% endraw %}
    {% raw %}{{ hostvars[host]['ansible_eth0']['ipv4']['address'] }}{% endraw %}
-{% endfor %}
+{% raw %}{% endfor %}{% endraw %}
 ```
 
 Note: when using `hostvars` with Vagrant things can get a bit tricky.
@@ -1197,16 +1197,16 @@ backend {% raw %}{{ backend_name }}{% endraw %}
     # set balancing algorithm for distributing requests
     balance     {% raw %}{{ balance }}{% endraw %}
     # get list of machines in the lbservers group
-    {% for host in groups['lbservers'] %}
+    {% raw %}{% for host in groups['lbservers'] %}{% endraw %}
         # each LB will listen for connections on lb_listen_port on all interfaces
         listen {% raw %}{{ daemon_name }} *:{{ lb_listen_port }}{% endraw %}
-    {% endfor %}
+    {% raw %}{% endfor %}{% endraw %}
     # get list of machines in the webservers group
-    {% for host in groups['webservers'] %}
+    {% raw %}{% for host in groups['webservers'] %}{% endraw %}
         # requests will be forwarded to the webservers' WAN network interface (eth1) on port website_port
         # the check option enables health checks by HAProxy
         server {% raw %}{{ host }} {{ hostvars[host]['ansible_eth1'].ipv4.address }}:{{ website_port }}{% endraw %} check
-    {% endfor %}
+    {% raw %}{% endfor %}{% endraw %}
 ```
 
 # Debugging and tips
