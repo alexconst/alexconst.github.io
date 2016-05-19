@@ -462,6 +462,17 @@ To pass an environment variable to the provisioning scripts:
             ],
 ```
 
+Also especially useful is the `file` provisioner which allows copying a
+file or directory to the target machine:
+
+``` json
+{
+  "type": "file",
+  "source": "app.tar.gz",
+  "destination": "/tmp/app.tar.gz"
+}
+```
+
 ## Post-processors
 
 The most common use is the creation of a [Vagrant]({% post_url 2016-01-28-vagrant %}) box. But

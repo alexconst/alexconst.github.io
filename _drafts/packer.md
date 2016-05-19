@@ -369,9 +369,18 @@ To pass an environment variable to the provisioning scripts:
                 "varfoo=bar"
             ],
 ```
+Also especially useful is the `file` provisioner which allows copying a file or directory to the target machine:
+```json
+{
+  "type": "file",
+  "source": "app.tar.gz",
+  "destination": "/tmp/app.tar.gz"
+}
+```
 
 
 ## Post-processors
+
 The most common use is the creation of a [Vagrant](vagrant.md) box. But can also be used to upload an image to an endpoint.
 ```json
 {
