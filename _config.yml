@@ -45,12 +45,14 @@ kramdown:
         # Rouge Options › https://github.com/jneen/rouge#full-options
         css_class: 'highlight'
         #line_numbers: true # bad idea, spans don't need linenos and would inherit this option
+        #default_lang: text # try this one latter on
         span:
             line_numbers: false
+            disable: true
         block:
             line_numbers: true
             start_line: 1
-        #inline_theme: monokai
+        #inline_theme: monokai.sublime # actually works pretty well, apart from diff files lacking background
         # preview (some of the) color schemes:
         #   http://vimcolors.com/
         #   https://github.com/jneen/rouge#inline_theme-nil
