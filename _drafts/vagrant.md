@@ -121,6 +121,10 @@ vagrant up
 # with $provider being one of 'virtualbox', 'vmware', 'aws', 'qemu', etc
 vagrant up --provider $provider
 
+# package the running VirtualBox environment into a re-usable box
+# (tip: can be useful when looking to save provisioning time)
+vagrant package --output "${newbox}.box"
+
 # connect to the development environment
 vagrant ssh
 
