@@ -248,11 +248,12 @@ config.vm.network "forwarded_port", host: 8080, guest: 80
 config.vm.network "forwarded_port", host: 12003, guest: 2003, protocol: "tcp"
 config.vm.network "forwarded_port", host: 12003, guest: 2003, protocol: "udp"
 
-# provision done by uploading a script and executing it (path can be an URL)
+# provision by copying a file or directory to the guest machine
+config.vm.provision "file", source: "files/mydata.tar.gz", destination: "/tmp/mydata.tar.gz"
+# provision by executing a command on the guest
+config.vm.provision "shell", inline: "tar -xzf /tmp/mydata.tar.gz"
+# provision by uploading a script and executing it (path can be an URL)
 config.vm.provision "shell", path: "scripts/packages.sh"
-# provision done by executing an already existing script in the guest
-config.vm.provision "shell", inline: "/bin/bash /path/to/script.sh"
-
 ```
 
 Our use case matches the default scenario where the guest is Linux and communication is done via `ssh`. But Vagrant also supports Windows guest where communication is done via `winrm`.
